@@ -1,0 +1,214 @@
+/*
+ * Dukavo stylesheet entry.
+ *
+ * Order is load-bearing: Tailwind first (preflight + theme resolution), then
+ * the token layer that redefines the palette, then the global element rules,
+ * then type utilities, then the shared transition vocabulary.
+ *
+ * Fonts are imported from main.ts instead of here so the font files go through
+ * Vite's asset pipeline the same way every other static asset does.
+ */
+
+@import 'tailwindcss';
+
+@import './tokens.css';
+@import './base.css';
+@import './typography.css';
+@import './transitions.css';
+
+/*
+ * Components that are genuinely global — patterns repeated so often across
+ * screens that living in a utility layer would only add noise. Anything used
+ * by two or fewer screens stays inside its own component.
+ */
+
+@layer components {
+  /* The card is the primary content container. Border-led, not shadow-led. */
+  .surface {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-line);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Interactive card: lifts one step on hover, never more than one. */
+  .surface-hover {
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
+  }
+
+  .surface-hover:hover {
+    border-color: var(--border-line-strong);
+    background-color: var(--bg-hover);
+  }
+
+  /* Horizontal rules that survive both themes. */
+  .rule {
+    border-color: var(--border-line);
+  }
+
+  /* The focus ring as a utility, for components that manage their own
+   * outline (inputs, custom checkboxes) rather than inheriting the default. */
+  .focus-ring {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  .focus-ring-inset {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
+
+  /*
+   * The indeterminate progress bar used for any operation whose duration is
+   * unknown (page boot, table refetch). One animation, one look.
+   */
+  .progress-indeterminate {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--brand-soft);
+  }
+
+  .progress-indeterminate::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inline-size: 40%;
+    background-color: var(--brand-ink);
+    animation: dukavo-indeterminate 1.1s var(--ease-standard) infinite;
+  }
+
+  /* Skeleton shimmer, used by BaseSkeleton. */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--bg-surface-3);
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--bg-surface) 70%, transparent) 50%,
+      transparent 100%
+    );
+    animation: dukavo-shimmer 1.4s var(--ease-standard) infinite;
+  }
+
+  /* Direction-agnostic so the sweep follows reading order in both scripts. */
+  [dir='rtl'] .shimmer::after {
+    background-image: linear-gradient(
+      270deg,
+      transparent 0%,
+      color-mix(in srgb, var(--bg-surface) 70%, transparent) 50%,
+      transparent 100%
+    );
+  }
+}
+
+@keyframes dukavo-indeterminate {
+  0% {
+    inset-inline-start: -45%;
+  }
+
+  100% {
+    inset-inline-start: 105%;
+  }
+}
+
+@keyframes dukavo-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* A single, slow pulse for "waiting on the server" chrome. */
+@keyframes dukavo-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.animate-pulse-soft {
+  animation: dukavo-pulse 1.8s var(--ease-standard) infinite;
+}
+
+@layer components {
+  /*
+   * Icon-only button: the chrome-agnostic primary for header and toolbar
+   * actions. Text buttons get their own components.
+   */
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
+  }
+
+  .btn-icon:hover {
+    background-color: var(--bg-surface-2);
+    color: var(--text-ink);
+  }
+
+  .btn-icon:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* Sidebar navigation row. */
+  .side-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: var(--radius-md);
+    padding-block: 0.5rem;
+    padding-inline: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
+  }
+
+  .side-link:hover {
+    background-color: var(--bg-surface-2);
+    color: var(--text-ink);
+  }
+
+  .side-link:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
+
+  .side-link.active {
+    background-color: var(--brand-soft);
+    color: var(--brand-ink);
+  }
+
+  .side-group-label {
+    padding-block: 0.25rem;
+    padding-inline: 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+  }
+}

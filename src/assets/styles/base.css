@@ -1,0 +1,115 @@
+/*
+ * Global base styles.
+ *
+ * Tailwind's preflight already normalises the element tree; this file only
+ * adds what is genuinely application-wide: the canvas, the type stack, focus
+ * visibility, scrollbars and reduced-motion handling. Anything more specific
+ * than that belongs on the component.
+ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--bg-canvas);
+  color: var(--text-ink);
+  font-family: 'Inter Variable', 'IBM Plex Sans Arabic', ui-sans-serif, system-ui,
+    -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--duration-base, 200ms) var(--ease-standard),
+    color var(--duration-base, 200ms) var(--ease-standard);
+}
+
+#app {
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+/*
+ * Focus is always visible and always the brand. Keyboard operation is a
+ * first-class path through the product, so the ring is never removed — it is
+ * only ever moved off an element that is genuinely pointer-only (a row click
+ * target, say).
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background-color: var(--brand-soft);
+  color: var(--text-ink);
+}
+
+/* Scrollbars: present, but never louder than the content they serve. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-line-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-line-strong);
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-subtle);
+}
+
+/* Media embeds respect the card they sit in. */
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/*
+ * `content-visibility: auto` on long list regions keeps first paint cheap on
+ * the table-heavy screens without changing their geometry.
+ */
+.contain-content {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+}
+
+/* --------------------------------------------------------------------------
+ * Reduced motion
+ *
+ * The product must remain legible when animation is off — transitions are
+ * collapsed rather than removed, so state changes still read as changes.
+ * -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

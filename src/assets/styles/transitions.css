@@ -1,0 +1,189 @@
+/*
+ * Transition primitives.
+ *
+ * Vue's <Transition> hooks onto these classes, which gives every animated
+ * surface in Dukavo one shared vocabulary instead of each component inventing
+ * its own keyframes. Durations stay inside 150–250ms; anything longer reads as
+ * latency rather than polish.
+ *
+ * Reduced-motion users get the collapse in base.css, so these classes only
+ * ever describe *how* something moves, never whether it appears at all.
+ */
+
+/* --------------------------------------------------------------------------
+ * Route transitions — a short fade with a very small lift. Kept deliberately
+ * quiet: navigation should feel immediate, and only the content area moves.
+ * -------------------------------------------------------------------------- */
+
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+  will-change: opacity, transform;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Fade only — for surfaces that swap in place (tab panels, list bodies). */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * Scale-from-origin — dropdowns, popovers, tooltips. Anchored surfaces grow
+ * from the edge they are attached to rather than from their own centre.
+ * -------------------------------------------------------------------------- */
+
+.pop-enter-active,
+.pop-leave-active {
+  transition:
+    opacity var(--duration-fast) var(--ease-out-quart),
+    transform var(--duration-fast) var(--ease-out-quart),
+    visibility var(--duration-fast) linear;
+  transform-origin: var(--pop-origin, top center);
+}
+
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.96) translateY(-4px);
+  visibility: hidden;
+}
+
+/* Same gesture for bottom sheets, which travel along the block axis instead. */
+.sheet-enter-active,
+.sheet-leave-active {
+  transition:
+    opacity var(--duration-base) var(--ease-out-quart),
+    transform var(--duration-base) var(--ease-out-quart);
+}
+
+.sheet-enter-from,
+.sheet-leave-to {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+/* --------------------------------------------------------------------------
+ * Modal — dialog fades, its scrim darkens independently.
+ * -------------------------------------------------------------------------- */
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity var(--duration-base) var(--ease-standard);
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-panel-enter-active {
+  transition:
+    opacity var(--duration-base) var(--ease-out-quart),
+    transform var(--duration-base) var(--ease-out-quart);
+}
+
+.modal-panel-leave-active {
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.modal-panel-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+}
+
+.modal-panel-leave-to {
+  opacity: 0;
+  transform: translateY(4px) scale(0.99);
+}
+
+/* --------------------------------------------------------------------------
+ * Toasts — enter along the inline axis so they feel attached to the edge of
+ * the viewport and don't cover the centre of the work area.
+ * -------------------------------------------------------------------------- */
+
+.toast-enter-active {
+  transition:
+    opacity var(--duration-base) var(--ease-out-quart),
+    transform var(--duration-base) var(--ease-out-quart);
+}
+
+.toast-leave-active {
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(var(--toast-shift, 16px)) scale(0.98);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(var(--toast-shift, 16px)) scale(0.98);
+}
+
+.toast-move {
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+/* --------------------------------------------------------------------------
+ * List / table row entrance — a 1px stagger by default, applied through
+ * `transition-delay` on the parent when a list first renders.
+ * -------------------------------------------------------------------------- */
+
+.row-enter-active {
+  transition:
+    opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+.row-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* --------------------------------------------------------------------------
+ * Collapse — sidebar sections, accordion bodies. Animates height so the
+ * sibling flow reflows smoothly instead of jumping.
+ * -------------------------------------------------------------------------- */
+
+.collapse-enter-active,
+.collapse-leave-active {
+  overflow: hidden;
+  transition:
+    height var(--duration-base) var(--ease-standard),
+    opacity var(--duration-base) var(--ease-standard);
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  height: 0;
+  opacity: 0;
+}
+
+/* Sidebar width is a layout value, so it moves on the same cadence. */
+.sidebar-shift {
+  transition:
+    width var(--duration-slow) var(--ease-out-quart),
+    transform var(--duration-slow) var(--ease-out-quart);
+}
