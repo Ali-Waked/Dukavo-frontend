@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Dukavo — commerce operations for growing businesses." />
+    <meta name="color-scheme" content="light dark" />
+    <title>Dukavo</title>
+    <script>
+      // Pre-paint theme + language bootstrap. Runs before any CSS is applied so
+      // there is no flash of the wrong scheme or writing direction. Must stay
+      // in sync with the storage keys used by the theme store and the i18n module.
+      ;(function () {
+        var root = document.documentElement
+
+        var locale = null
+        try {
+          locale = localStorage.getItem('dukavo.locale')
+        } catch (e) {
+          /* storage unavailable — defaults stand */
+        }
+        var arabic = locale === 'ar'
+        var preferred = null
+        try {
+          preferred = navigator.language
+        } catch (e) {}
+        arabic = arabic || (preferred && preferred.toLowerCase().indexOf('ar') === 0) || false
+
+        root.lang = arabic ? 'ar' : 'en'
+        root.dir = arabic ? 'rtl' : 'ltr'
+
+        var theme = null
+        try {
+          theme = localStorage.getItem('dukavo.theme')
+        } catch (e) {}
+        var dark
+        if (theme === 'dark' || theme === 'light') {
+          dark = theme === 'dark'
+        } else {
+          try {
+            dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          } catch (e) {
+            dark = false
+          }
+        }
+
+        root.classList.toggle('dark', dark)
+        root.style.colorScheme = dark ? 'dark' : 'light'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
