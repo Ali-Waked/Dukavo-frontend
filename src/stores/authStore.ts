@@ -2,13 +2,11 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
   login as loginRequest,
-  register as registerRequest,
-  provisionTenant as provisionTenantRequest,
   logout as logoutRequest,
   fetchSession,
 } from '@/services/authService'
-import { getAccessToken, setAccessToken, setTenantSlug } from '@/lib/axiosClient'
-import type { RegistrationDetails, Session } from '@/types/auth'
+import { setAccessToken, setTenantSlug } from '@/lib/axiosClient'
+import type { Session } from '@/types/auth'
 
 /**
  * The signed-in identity, and the boot flow that produces it.
@@ -176,55 +174,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Create an account and its first workspace in one step.
-   *
-   * Registration (Fortify) hands back a token, but a fresh account owns no
-   * tenant — so nothing tenant-scoped would resolve until onboarding runs. This
-   * performs both, then boots `/me` with the new workspace selected, leaving the
-   * caller inside the same state a sign-in would produce.
-   *
-   * `idempotencyKey` is passed straight through to provisioning so a paused or
-   * retried signup cannot create a duplicate workspace.
-   */
-  async function register(details: RegistrationDetails, idempotencyKey: string): Promise<void> {
-    loading.value = true
-    try {
-      // A prior attempt may have already created the account — its bearer
-      // token is attached — and then failed while provisioning the workspace.
-      // Resume from provisioning rather than trying to register the same email
-      // again (which the backend would rightly reject as a duplicate).
-      if (!getAccessToken()) {
-        const { token } = await registerRequest({
-          name: details.name,
-          email: details.email,
-          password: details.password,
-          password_confirmation: details.password_confirmation,
-        })
-
-        if (!token) {
-          throw new Error('Registration succeeded without a token.')
-        }
-
-        setAccessToken(token)
-        persistToken(token, true)
-      }
-
-      const tenant = await provisionTenantRequest(
-        { name: details.workspace_name, store_name: details.store_name },
-        idempotencyKey,
-      )
-
-      setTenantSlug(tenant.slug)
-      persistTenant(tenant.slug)
-
-      await fetchMe()
-    } finally {
-      loading.value = false
-      initialised.value = true
-    }
-  }
-
-  /**
    * Leave the active workspace and return to the platform context. Only a
    * platform operator has one to return to; any other caller would lose its
    * tenant and be refused by every scoped request.
@@ -326,7 +275,6 @@ export const useAuthStore = defineStore('auth', () => {
     permissions,
     roles,
     login,
-    register,
     logout,
     bootstrap,
     refreshSession,

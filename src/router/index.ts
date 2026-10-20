@@ -6,7 +6,6 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import MarketingLayout from '@/layouts/MarketingLayout.vue'
 
 import LoginPage from '@/pages/auth/LoginPage.vue'
-import RegisterPage from '@/pages/auth/RegisterPage.vue'
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage.vue'
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage.vue'
 import VerifyEmailPage from '@/pages/auth/VerifyEmailPage.vue'
@@ -20,7 +19,6 @@ import AboutPage from '@/pages/marketing/AboutPage.vue'
 import BlogPage from '@/pages/marketing/BlogPage.vue'
 import BlogArticlePage from '@/pages/marketing/BlogArticlePage.vue'
 import HelpPage from '@/pages/marketing/HelpPage.vue'
-import WaitlistPage from '@/pages/marketing/WaitlistPage.vue'
 import TermsPage from '@/pages/marketing/TermsPage.vue'
 import PrivacyPage from '@/pages/marketing/PrivacyPage.vue'
 import AcceptableUsePage from '@/pages/marketing/AcceptableUsePage.vue'
@@ -71,7 +69,6 @@ const router = createRouter({
           meta: { title: 'Blog' },
         },
         { path: 'help', name: 'marketing.help', component: HelpPage, meta: { title: 'Help' } },
-        { path: 'waitlist', name: 'marketing.waitlist', component: WaitlistPage, meta: { title: 'Waitlist' } },
         { path: 'terms', name: 'marketing.terms', component: TermsPage, meta: { title: 'Terms' } },
         { path: 'privacy', name: 'marketing.privacy', component: PrivacyPage, meta: { title: 'Privacy' } },
         { path: 'acceptable-use', name: 'marketing.acceptable-use', component: AcceptableUsePage, meta: { title: 'Acceptable Use' } },
@@ -89,12 +86,6 @@ const router = createRouter({
       meta: { guest: true },
       children: [
         { path: 'login', name: 'auth.login', component: LoginPage, meta: { title: 'Sign in' } },
-        {
-          path: 'register',
-          name: 'auth.register',
-          component: RegisterPage,
-          meta: { title: 'Create account' },
-        },
         {
           path: 'forgot-password',
           name: 'auth.forgot-password',
@@ -221,6 +212,12 @@ const router = createRouter({
           name: 'audit.index',
           component: () => import('@/pages/audit/AuditPage.vue'),
           meta: { permission: 'audit.view', title: 'Audit log' },
+        },
+        {
+          path: 'notifications',
+          name: 'notifications.index',
+          component: () => import('@/pages/notifications/NotificationsPage.vue'),
+          meta: { title: 'Notifications' },
         },
         {
           path: 'profile',
