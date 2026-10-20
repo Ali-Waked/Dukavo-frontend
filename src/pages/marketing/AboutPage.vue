@@ -2,7 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
-import { ArrowRight, FileText, LoaderCircle, RefreshCw } from '@/components/icons'
+import { FileText, LoaderCircle, RefreshCw } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import { useSeo } from '@/composables/useSeo'
 import { ApiError } from '@/lib/axiosClient'
@@ -129,10 +129,6 @@ watch(locale, () => void load())
             {{ page.intro }}
           </p>
           <div class="mt-8 flex flex-wrap justify-center gap-3" data-aos="fade-up" data-aos-delay="150">
-            <BaseButton size="lg" to="/register">
-              {{ t('about.getStarted') }}
-              <ArrowRight class="size-4" />
-            </BaseButton>
             <BaseButton size="lg" variant="secondary" to="/contact">
               {{ t('about.contactCta') }}
             </BaseButton>
@@ -199,7 +195,6 @@ watch(locale, () => void load())
                   <RichText :body="section.body" />
                 </div>
                 <div class="mt-2 flex flex-wrap justify-center gap-3">
-                  <BaseButton size="lg" to="/register">{{ t('about.getStarted') }}</BaseButton>
                   <BaseButton size="lg" variant="secondary" to="/contact">
                     {{ t('about.contactCta') }}
                   </BaseButton>

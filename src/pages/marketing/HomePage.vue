@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import { ArrowRight } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
@@ -38,10 +37,6 @@ onMounted(() => {
               {{ t('marketing.home.heroSubtitle') }}
             </p>
             <div class="mt-8 flex flex-wrap items-center gap-3" data-aos="fade-up" data-aos-delay="200">
-              <BaseButton size="lg" to="/waitlist">
-                {{ t('marketing.cta.startFree') }}
-                <ArrowRight class="size-4" />
-              </BaseButton>
               <BaseButton size="lg" variant="secondary" to="/how-it-works">
                 {{ t('marketing.home.heroSecondary') }}
               </BaseButton>
@@ -132,20 +127,6 @@ onMounted(() => {
             <h3 class="text-h3 font-semibold text-ink">{{ t('marketing.home.pillarStoresTitle') }}</h3>
             <p class="mt-2 text-muted">{{ t('marketing.home.pillarStoresBody') }}</p>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="border-t border-line py-16 md:py-24">
-      <div class="mx-auto max-w-3xl px-4 text-center md:px-6" data-aos="fade-up">
-        <h2 class="text-h1 font-semibold text-ink">{{ t('marketing.home.ctaTitle') }}</h2>
-        <p class="mt-3 text-muted">{{ t('marketing.home.ctaBody') }}</p>
-        <div class="mt-8">
-          <BaseButton size="lg" to="/waitlist">
-            {{ t('marketing.home.ctaAction') }}
-            <ArrowRight class="size-4" />
-          </BaseButton>
         </div>
       </div>
     </section>

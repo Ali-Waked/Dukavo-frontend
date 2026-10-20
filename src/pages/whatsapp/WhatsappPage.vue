@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import {
   Bot,
+  Copy,
   KeyRound,
   Link2Off,
   LoaderCircle,
@@ -31,12 +32,13 @@ import {
   deleteAccount,
   disconnectAccount,
   fetchAccounts,
+  fetchConfiguration,
   updateAccount,
   verifyAccount,
   type WhatsappAccountPayload,
 } from '@/services/whatsappService'
 import { fetchStores } from '@/services/storeService'
-import type { WhatsappAccount } from '@/types/inbox'
+import type { WhatsappAccount, WhatsappConfiguration } from '@/types/inbox'
 import type { Store } from '@/types/catalogue'
 import type { WhatsappStatus } from '@/types/enums'
 import { statusTone } from '@/utils/status'
@@ -45,10 +47,16 @@ import { formatDateTime } from '@/utils/format'
 /**
  * WhatsApp channel configuration — one card per number, no pagination.
  *
- * The store list loads beside the accounts rather than through them: a store
- * endpoint that fails drops a field from the form and the store row from the
- * cards, never the page. Every mutation is hidden without `whatsapp.manage`,
- * so a viewer reads the same screen with an empty action column.
+ * Two lists load beside the accounts rather than through them: a store endpoint
+ * that fails drops a field from the form, and a configuration endpoint that
+ * fails drops the setup card, never the page. Every mutation is hidden without
+ * `whatsapp.manage`, so a viewer reads the same screen with an empty action
+ * column.
+ *
+ * The setup card is the only place the page can answer "why does nothing
+ * arrive?" — a healthy-looking number tells you nothing about whether the server
+ * holds the App Secret Meta signs deliveries with, so the server reports that
+ * as booleans and the card repeats them.
  */
 
 const { t } = useI18n()
@@ -57,6 +65,7 @@ const toast = useToast()
 
 const accounts = ref<WhatsappAccount[]>([])
 const stores = ref<Store[]>([])
+const configuration = ref<WhatsappConfiguration | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -108,6 +117,52 @@ async function loadStores(): Promise<void> {
     // The picker is optional: without it the form still saves a name, a number
     // and its Meta identifiers.
     stores.value = []
+  }
+}
+
+/**
+ * Platform setup, loaded beside the accounts.
+ *
+ * Failure is deliberately silent — the endpoint needs `whatsapp.view` and may
+ * not exist on an older server, and neither state should hold the page hostage
+ * when the numbers themselves loaded fine.
+ */
+async function loadConfiguration(): Promise<void> {
+  try {
+    configuration.value = await fetchConfiguration()
+  } catch {
+    configuration.value = null
+  }
+}
+
+/** One row per platform value: whether the server has it, never what it is. */
+const configurationRows = computed(() => {
+  const configured = configuration.value?.configured
+
+  if (!configured) return []
+
+  return [
+    { label: t('whatsapp.configPhoneNumberId'), ok: configured.phone_number_id },
+    { label: t('whatsapp.configBusinessAccount'), ok: configured.business_account_id },
+    { label: t('whatsapp.configAccessToken'), ok: configured.access_token },
+    { label: t('whatsapp.configAppSecret'), ok: configured.app_secret },
+    { label: t('whatsapp.configVerifyToken'), ok: configured.webhook_verify_token },
+  ]
+})
+
+/**
+ * Copy one of the webhook URLs, ready to paste into Meta's dashboard.
+ *
+ * Clipboard access needs a secure context and a browser that allows it; when it
+ * does not, the URL is still on screen to be selected by hand, so a refusal is a
+ * note rather than a failure.
+ */
+async function copyToClipboard(value: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(value)
+    toast.success(t('toast.copiedToClipboard'))
+  } catch {
+    toast.warning(t('whatsapp.copyFailed'))
   }
 }
 
@@ -310,6 +365,7 @@ async function confirmDelete(): Promise<void> {
 onMounted(() => {
   void load()
   void loadStores()
+  void loadConfiguration()
 })
 </script>
 
@@ -324,6 +380,90 @@ onMounted(() => {
     </PageHeader>
 
     <p class="max-w-3xl text-body text-muted">{{ t('whatsapp.channelNote') }}</p>
+
+    <!-- Platform setup: what the server holds, so a dead channel is explained
+         rather than merely displayed. -->
+    <BaseCard v-if="configuration">
+      <template #header>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h2 class="text-body font-semibold text-ink">{{ t('whatsapp.platformSetup') }}</h2>
+            <p class="mt-1 text-caption text-muted">{{ t('whatsapp.platformSetupNote') }}</p>
+          </div>
+
+          <BaseBadge v-if="configuration.api_version" tone="info" size="sm">
+            {{ configuration.api_version }}
+          </BaseBadge>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <BaseAlert
+          v-if="configuration.webhook.signature_validation === 'not_configured'"
+          tone="warning"
+          :title="t('whatsapp.signatureOff')"
+        >
+          {{ t('whatsapp.signatureOffNote') }}
+        </BaseAlert>
+
+        <BaseAlert
+          v-else
+          tone="success"
+          :title="t('whatsapp.signatureEnforced')"
+        />
+
+        <ul class="space-y-2">
+          <li
+            v-for="row in configurationRows"
+            :key="row.label"
+            class="flex items-center justify-between gap-3"
+          >
+            <span class="text-sm text-muted">{{ row.label }}</span>
+            <BaseBadge :tone="row.ok ? 'success' : 'warning'" size="sm" dot>
+              {{ row.ok ? t('whatsapp.configured') : t('whatsapp.notConfigured') }}
+            </BaseBadge>
+          </li>
+        </ul>
+
+        <dl class="space-y-2 border-t border-line pt-3">
+          <div class="flex items-center justify-between gap-3">
+            <dt class="text-caption text-subtle">{{ t('whatsapp.webhookVerifyUrl') }}</dt>
+            <dd class="flex min-w-0 items-center gap-1.5">
+              <span dir="ltr" class="truncate text-sm text-ink">
+                {{ configuration.webhook.verify_url }}
+              </span>
+              <button
+                type="button"
+                class="btn-icon shrink-0"
+                :aria-label="t('action.copy')"
+                :title="t('action.copy')"
+                @click="copyToClipboard(configuration.webhook.verify_url)"
+              >
+                <Copy class="size-4" />
+              </button>
+            </dd>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <dt class="text-caption text-subtle">{{ t('whatsapp.webhookEventsUrl') }}</dt>
+            <dd class="flex min-w-0 items-center gap-1.5">
+              <span dir="ltr" class="truncate text-sm text-ink">
+                {{ configuration.webhook.events_url }}
+              </span>
+              <button
+                type="button"
+                class="btn-icon shrink-0"
+                :aria-label="t('action.copy')"
+                :title="t('action.copy')"
+                @click="copyToClipboard(configuration.webhook.events_url)"
+              >
+                <Copy class="size-4" />
+              </button>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </BaseCard>
 
     <BaseAlert v-if="error" tone="danger" :title="t('error.title')">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -435,6 +575,16 @@ onMounted(() => {
               {{ account.status_label || statusLabel(account.status) }}
             </BaseBadge>
           </div>
+
+          <!-- The reason a number is in error is stored with the account, so
+               it outlives the toast that announced it. -->
+          <BaseAlert
+            v-if="account.status === 'error' && account.error_message"
+            tone="danger"
+            :title="t('whatsapp.connectionError')"
+          >
+            {{ account.error_message }}
+          </BaseAlert>
 
           <dl class="space-y-2 border-t border-line pt-3">
             <div v-if="storeName(account)" class="flex items-center justify-between gap-3">

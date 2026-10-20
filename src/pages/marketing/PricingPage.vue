@@ -20,11 +20,9 @@ import { formatCurrency } from '@/utils/format'
  * it renders exactly what the admin published, ordered by sort order, with a
  * nullable price rendered as the "coming soon" state rather than as zero.
  *
- * It also never invents a checkout. A plan is offered a real signup CTA only
- * when the server says `purchase_available`; anything else (coming soon, or a
- * published paid plan with no payment provider behind it) routes to the
- * waitlist so interest is captured instead of implying a purchase that cannot
- * be completed.
+ * Signup is invite-only, so the page offers no self-serve CTA: a plan that is
+ * not yet purchasable is annotated as such instead of routing to the waitlist
+ * or registration, both of which have been removed.
  */
 
 const { t } = useI18n()
@@ -132,22 +130,12 @@ function periodSuffix(plan: PricingPlan): string {
               </template>
             </div>
 
-            <BaseButton
-              v-if="plan.purchase_available"
-              class="mt-6 w-full"
-              :variant="plan.highlighted ? 'primary' : 'secondary'"
-              to="/register"
+            <p
+              v-if="!plan.purchase_available && plan.price !== null"
+              class="mt-6 text-small text-muted"
             >
-              {{ t('pricing.startFree') }}
-            </BaseButton>
-            <template v-else>
-              <BaseButton class="mt-6 w-full" variant="secondary" :to="`/waitlist?plan=${plan.slug}`">
-                {{ t('pricing.notifyMe') }}
-              </BaseButton>
-              <p v-if="plan.price !== null" class="mt-3 text-small text-muted">
-                {{ t('pricing.paidUnavailable') }}
-              </p>
-            </template>
+              {{ t('pricing.paidUnavailable') }}
+            </p>
 
             <ul v-if="plan.features && plan.features.length > 0" class="mt-6 space-y-2.5 border-t border-line pt-6">
               <li

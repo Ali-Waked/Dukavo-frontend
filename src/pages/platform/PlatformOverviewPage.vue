@@ -19,6 +19,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import StatCard from '@/components/ui/StatCard.vue'
+import AiInsightsPanel from '@/components/ui/AiInsightsPanel.vue'
 import TrendChart, { type TrendSeries } from '@/components/charts/TrendChart.vue'
 import BarMeters, { type MeterItem } from '@/components/charts/BarMeters.vue'
 import MiniList, { type MiniListItem } from '@/components/charts/MiniList.vue'
@@ -457,6 +458,8 @@ onMounted(load)
           :loading="loading"
         />
       </div>
+
+      <AiInsightsPanel v-if="auth.can('ai.use')" scope="platform" :range="range" />
 
       <!-- Time series -->
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">

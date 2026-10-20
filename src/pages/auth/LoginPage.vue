@@ -149,13 +149,5 @@ async function submit(): Promise<void> {
         {{ loading ? t('auth.signingIn') : t('auth.signIn') }}
       </BaseButton>
     </form>
-
-    <p class="mt-6 text-center text-small text-muted">
-      {{ t('auth.noAccount') }}
-      {{ ' ' }}
-      <RouterLink to="/register" class="font-medium text-brand-ink underline-offset-4 hover:underline">
-        {{ t('auth.registerLink') }}
-      </RouterLink>
-    </p>
   </div>
 </template>

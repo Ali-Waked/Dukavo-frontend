@@ -234,7 +234,7 @@ onMounted(() => void load())
             </div>
 
             <div class="mt-4">
-              <BaseTable :columns="variantColumns">
+              <BaseTable :columns="variantColumns" :rows="variants">
                 <tr v-for="variant in variants" :key="variant.id">
                   <td class="px-4 py-3 font-medium text-ink">{{ variant.name }}</td>
 
@@ -262,7 +262,6 @@ onMounted(() => void load())
 
                 <template #empty>
                   <BaseEmptyState
-                    v-if="variants.length === 0"
                     compact
                     :title="t('products.variants')"
                     :description="t('state.empty')"
@@ -386,7 +385,7 @@ onMounted(() => void load())
                 v-for="image in images"
                 :key="image.id"
                 :src="image.url ?? image.path"
-                :alt="image.alt ?? ''"
+                :alt="image.alt_text ?? ''"
                 loading="lazy"
                 class="aspect-square w-full rounded-lg border border-line object-cover"
               />

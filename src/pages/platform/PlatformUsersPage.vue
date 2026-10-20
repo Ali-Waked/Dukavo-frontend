@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { Pencil, UserPlus, Users } from '@/components/icons'
+import { Eye, EyeOff, Pencil, UserPlus, Users } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useDebounce } from '@/composables/useDebounce'
@@ -72,11 +72,14 @@ const formEmail = ref('')
 const formPhone = ref('')
 const formLocale = ref<string>('en')
 const formPassword = ref('')
+const formPasswordConfirmation = ref('')
 const formRole = ref('')
 const formStatus = ref<string>('active')
+const showPassword = ref(false)
 const nameError = ref<string | null>(null)
 const emailError = ref<string | null>(null)
 const roleError = ref<string | null>(null)
+const passwordError = ref<string | null>(null)
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
@@ -202,7 +205,15 @@ function clearFormErrors(): void {
   nameError.value = null
   emailError.value = null
   roleError.value = null
+  passwordError.value = null
   formError.value = null
+}
+
+function resetPasswordFields(): void {
+  formPassword.value = ''
+  formPasswordConfirmation.value = ''
+  passwordError.value = null
+  showPassword.value = false
 }
 
 function openCreate(): void {
@@ -211,9 +222,9 @@ function openCreate(): void {
   formEmail.value = ''
   formPhone.value = ''
   formLocale.value = locale.value
-  formPassword.value = ''
   formRole.value = ''
   formStatus.value = 'active'
+  resetPasswordFields()
   clearFormErrors()
   formOpen.value = true
 }
@@ -224,16 +235,18 @@ function openEdit(user: User): void {
   formEmail.value = user.email
   formPhone.value = user.phone ?? ''
   formLocale.value = user.locale ?? locale.value
-  formPassword.value = ''
   const currentPlatformRole = (user.roles ?? []).find((role) => role.scope === 'platform')
   formRole.value = currentPlatformRole ? String(currentPlatformRole.id) : ''
   formStatus.value = user.status
+  resetPasswordFields()
   clearFormErrors()
   formOpen.value = true
 }
 
 function closeForm(): void {
   formOpen.value = false
+  // Never leave a typed password sitting in the form's memory once it closes.
+  resetPasswordFields()
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -256,7 +269,18 @@ function validateForm(): boolean {
     roleError.value = t('validation.required')
   }
 
-  return nameError.value === null && emailError.value === null && roleError.value === null
+  // The confirmation field only exists while creating; a mismatch (including a
+  // filled password with an empty confirmation) is caught before the request.
+  if (editingId.value === null && formPassword.value !== formPasswordConfirmation.value) {
+    passwordError.value = t('validation.passwordMismatch')
+  }
+
+  return (
+    nameError.value === null &&
+    emailError.value === null &&
+    roleError.value === null &&
+    passwordError.value === null
+  )
 }
 
 function showFormError(caught: unknown): void {
@@ -264,10 +288,21 @@ function showFormError(caught: unknown): void {
     nameError.value = caught.fields['name']?.[0] ?? null
     emailError.value = caught.fields['email']?.[0] ?? null
     roleError.value = caught.fields['role_id']?.[0] ?? null
+    passwordError.value =
+      caught.fields['password']?.[0] ?? caught.fields['password_confirmation']?.[0] ?? null
 
-    const bound = nameError.value !== null || emailError.value !== null || roleError.value !== null
+    const bound =
+      nameError.value !== null ||
+      emailError.value !== null ||
+      roleError.value !== null ||
+      passwordError.value !== null
     const hasUnboundFields = Object.keys(caught.fields).some(
-      (key) => key !== 'name' && key !== 'email' && key !== 'role_id',
+      (key) =>
+        key !== 'name' &&
+        key !== 'email' &&
+        key !== 'role_id' &&
+        key !== 'password' &&
+        key !== 'password_confirmation',
     )
     if (!bound || hasUnboundFields) {
       formError.value = caught.message || t('error.title')
@@ -291,7 +326,7 @@ async function assignNewRole(userId: number, roleIdValue: number): Promise<void>
 }
 
 async function submitForm(): Promise<void> {
-  if (!validateForm()) return
+  if (saving.value || !validateForm()) return
 
   saving.value = true
   const common = {
@@ -305,7 +340,10 @@ async function submitForm(): Promise<void> {
     if (editingId.value === null) {
       await createPlatformUser({
         ...common,
+        // The confirmation field travels with the password so the backend's
+        // `confirmed` rule has a matching value to check.
         password: formPassword.value || undefined,
+        password_confirmation: formPassword.value ? formPasswordConfirmation.value : undefined,
         role_id: Number(formRole.value),
       })
       toast.success(t('users.created'))
@@ -512,14 +550,37 @@ onMounted(() => {
           />
         </div>
 
-        <BaseInput
-          v-if="editingId === null"
-          v-model="formPassword"
-          type="password"
-          :label="t('common.password')"
-          :hint="t('users.passwordHint')"
-          autocomplete="new-password"
-        />
+        <div v-if="editingId === null" class="grid gap-4 sm:grid-cols-2">
+          <BaseInput
+            v-model="formPassword"
+            :type="showPassword ? 'text' : 'password'"
+            :label="t('common.password')"
+            :hint="t('users.passwordHint')"
+            :error="passwordError"
+            autocomplete="new-password"
+          >
+            <template #suffix>
+              <button
+                type="button"
+                class="grid size-7 place-items-center rounded-md text-muted transition hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                :aria-label="showPassword ? t('auth.hidePassword') : t('auth.showPassword')"
+                :aria-pressed="showPassword"
+                @click="showPassword = !showPassword"
+              >
+                <EyeOff v-if="showPassword" class="size-4" />
+                <Eye v-else class="size-4" />
+              </button>
+            </template>
+          </BaseInput>
+
+          <BaseInput
+            v-model="formPasswordConfirmation"
+            :type="showPassword ? 'text' : 'password'"
+            name="password_confirmation"
+            :label="t('users.confirmPassword')"
+            autocomplete="new-password"
+          />
+        </div>
 
         <div>
           <BaseSelect

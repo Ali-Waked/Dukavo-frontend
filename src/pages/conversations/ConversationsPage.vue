@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { ArrowLeft, Check, MoreHorizontal, RefreshCw, Send, Users } from '@/components/icons'
+import { ArrowLeft, Check, MoreHorizontal, RefreshCw, Send, Sparkles, Users } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useDebounce } from '@/composables/useDebounce'
@@ -28,11 +28,14 @@ import {
   updateConversation,
 } from '@/services/conversationService'
 import { fetchUsers } from '@/services/userService'
+import { draftReply } from '@/services/aiService'
+import type { AiReplyDraft } from '@/types/ai'
 import type { User } from '@/types/admin'
 import type { Paginated } from '@/types/api'
 import type { Channel, ConversationStatus } from '@/types/enums'
 import type { Conversation, ConversationMessage, ConversationSummary } from '@/types/inbox'
 import { formatDateTime, formatNumber, formatRelative } from '@/utils/format'
+import { aiErrorMessage } from '@/utils/ai'
 import { statusTone } from '@/utils/status'
 
 /**
@@ -45,7 +48,7 @@ import { statusTone } from '@/utils/status'
  * place; nothing here navigates away from the inbox.
  */
 
-const { t } = useI18n()
+const { t, tDynamic } = useI18n()
 const { store: auth } = useAuth()
 const toast = useToast()
 
@@ -112,8 +115,18 @@ const assigning = ref(false)
 const users = ref<User[]>([])
 const usersLoading = ref(false)
 
+/* --------------------------------------------------------------- ai draft */
+
+const draftOpen = ref(false)
+const draftInstruction = ref('')
+const draftLoading = ref(false)
+const draftError = ref<string | null>(null)
+const draftResult = ref<AiReplyDraft | null>(null)
+const draftText = ref('')
+
 const canReply = computed(() => auth.can('conversations.reply'))
 const canAssign = computed(() => auth.can('conversations.assign'))
+const canUseAi = computed(() => auth.can('ai.use'))
 
 const hasFilters = computed(
   () => query.value !== '' || status.value !== '' || channel.value !== '',
@@ -412,6 +425,45 @@ function onComposerKeydown(event: KeyboardEvent): void {
   }
 }
 
+/* ------------------------------------------------------------- ai drafting */
+
+function openDraftModal(): void {
+  draftInstruction.value = ''
+  draftError.value = null
+  draftResult.value = null
+  draftText.value = ''
+  draftOpen.value = true
+}
+
+/** Ask for a suggestion. It is only ever placed in the composer, never sent. */
+async function generateDraft(): Promise<void> {
+  const target = conversation.value
+  if (!target || draftLoading.value) return
+
+  draftLoading.value = true
+  draftError.value = null
+  try {
+    const result = await draftReply(target.id, draftInstruction.value)
+    draftResult.value = result
+    draftText.value = result.draft
+  } catch (caught) {
+    draftError.value = aiErrorMessage(caught, t)
+  } finally {
+    draftLoading.value = false
+  }
+}
+
+function applySuggestion(value: string): void {
+  const current = draftText.value.trim()
+  draftText.value = current === '' ? value : `${current}\n${value}`
+}
+
+/** Carry the reviewed draft into the composer; the agent still presses send. */
+function useDraft(): void {
+  reply.value = draftText.value.trim()
+  draftOpen.value = false
+}
+
 watch(debouncedQuery, () => {
   page.value = 1
   void load()
@@ -701,6 +753,19 @@ onMounted(() => {
               {{ sendError }}
             </BaseAlert>
 
+            <div v-if="canUseAi" class="mb-2 flex flex-wrap items-center gap-2">
+              <BaseButton
+                size="sm"
+                variant="secondary"
+                :icon="Sparkles"
+                :disabled="isClosed || sending"
+                @click="openDraftModal"
+              >
+                {{ t('ai.reply.button') }}
+              </BaseButton>
+              <span class="text-caption text-subtle">{{ t('ai.reply.disclaimer') }}</span>
+            </div>
+
             <form class="flex items-end gap-2" @submit.prevent="submitReply">
               <BaseTextarea
                 v-model="reply"
@@ -777,6 +842,83 @@ onMounted(() => {
         </BaseButton>
         <BaseButton :loading="assigning" @click="saveAssign">
           {{ t('action.save') }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- AI reply draft -->
+    <BaseModal
+      :open="draftOpen"
+      :title="t('ai.reply.title')"
+      :description="t('ai.reply.description')"
+      @close="draftOpen = false"
+    >
+      <div class="space-y-4">
+        <BaseInput
+          v-model="draftInstruction"
+          :label="t('ai.reply.instructionLabel')"
+          :placeholder="t('ai.reply.instructionPlaceholder')"
+        />
+
+        <BaseButton
+          size="sm"
+          :icon="Sparkles"
+          :loading="draftLoading"
+          :disabled="draftLoading"
+          @click="generateDraft"
+        >
+          {{ draftResult ? t('ai.reply.regenerate') : t('ai.reply.generate') }}
+        </BaseButton>
+
+        <BaseAlert v-if="draftError" tone="danger" dismissible @dismiss="draftError = null">
+          {{ draftError }}
+        </BaseAlert>
+
+        <div v-if="draftLoading" class="space-y-3" aria-hidden="true">
+          <BaseSkeleton height="h-4" block />
+          <BaseSkeleton class="w-5/6" height="h-4" block />
+          <BaseSkeleton class="w-2/3" height="h-4" block />
+          <p class="text-small text-muted">{{ t('ai.reply.loading') }}</p>
+        </div>
+
+        <div v-else-if="draftResult" class="space-y-4">
+          <div v-if="draftResult.tone" class="flex items-center gap-2">
+            <span class="text-caption font-medium text-subtle">{{ t('ai.reply.tone') }}</span>
+            <BaseBadge size="sm" tone="brand">{{ tDynamic('ai.tone', draftResult.tone) }}</BaseBadge>
+          </div>
+
+          <BaseTextarea v-model="draftText" :label="t('ai.reply.draftLabel')" :rows="6" />
+
+          <div v-if="draftResult.suggestions.length > 0">
+            <p class="text-caption font-semibold uppercase tracking-wide text-subtle">
+              {{ t('ai.reply.suggestions') }}
+            </p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <button
+                v-for="(suggestion, index) in draftResult.suggestions"
+                :key="index"
+                type="button"
+                class="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-caption text-ink transition hover:bg-surface-3"
+                @click="applySuggestion(suggestion)"
+              >
+                {{ suggestion }}
+              </button>
+            </div>
+          </div>
+
+          <p class="text-caption text-subtle">{{ t('ai.reply.disclaimer') }}</p>
+        </div>
+      </div>
+
+      <template #footer>
+        <BaseButton variant="secondary" :disabled="draftLoading" @click="draftOpen = false">
+          {{ t('action.cancel') }}
+        </BaseButton>
+        <BaseButton
+          :disabled="draftText.trim() === '' || draftLoading"
+          @click="useDraft"
+        >
+          {{ t('ai.reply.use') }}
         </BaseButton>
       </template>
     </BaseModal>

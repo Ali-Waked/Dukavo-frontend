@@ -10,6 +10,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import StatCard from '@/components/ui/StatCard.vue'
+import AiInsightsPanel from '@/components/ui/AiInsightsPanel.vue'
 import RevenueChart from '@/components/charts/RevenueChart.vue'
 import BarMeters, { type MeterItem } from '@/components/charts/BarMeters.vue'
 import MiniList, { type MiniListItem } from '@/components/charts/MiniList.vue'
@@ -278,6 +279,12 @@ onMounted(load)
         </p>
       </div>
     </div>
+
+    <AiInsightsPanel
+      v-if="can('ai.use')"
+      scope="tenant"
+      :store-id="storeScope === '' ? undefined : Number(storeScope)"
+    />
 
     <!-- Revenue + top products -->
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">

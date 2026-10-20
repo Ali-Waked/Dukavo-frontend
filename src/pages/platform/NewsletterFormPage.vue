@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, LoaderCircle } from '@/components/icons'
+import { ArrowLeft, LoaderCircle, Sparkles } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import { useToast } from '@/composables/useToast'
+import { useAuth } from '@/composables/useAuth'
 import { useSlugAvailability } from '@/composables/useSlugAvailability'
 import { ApiError } from '@/lib/axiosClient'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import ImageUpload from '@/components/ui/ImageUpload.vue'
@@ -20,8 +23,11 @@ import {
   fetchNewsletterArticle,
   updateNewsletterArticle,
 } from '@/services/platformContentService'
+import { generateNewsletterContent } from '@/services/aiService'
 import type { NewsletterArticle, NewsletterArticlePayload } from '@/types/marketing'
 import type { NewsletterArticleStatus } from '@/types/enums'
+import type { AiNewsletterAction, AiNewsletterContent } from '@/types/ai'
+import { aiErrorMessage } from '@/utils/ai'
 
 /**
  * Author one newsletter edition.
@@ -37,6 +43,9 @@ const { t } = useI18n()
 const toast = useToast()
 const route = useRoute()
 const router = useRouter()
+const { store: auth } = useAuth()
+
+const canUseAi = computed(() => auth.can('ai.use'))
 
 const editingId = ref<number | null>(null)
 const loading = ref(false)
@@ -61,6 +70,21 @@ const slugError = ref<string | null>(null)
 const bodyError = ref<string | null>(null)
 const excerptError = ref<string | null>(null)
 const coverError = ref<string | null>(null)
+
+/* ------------------------------------------------------- ai content helper */
+
+const aiAction = ref<AiNewsletterAction>('draft')
+const aiBrief = ref('')
+const aiAudience = ref('')
+const aiLoading = ref(false)
+const aiError = ref<string | null>(null)
+const aiResult = ref<AiNewsletterContent | null>(null)
+
+const aiActionOptions = computed<Array<{ value: AiNewsletterAction; label: string }>>(() => [
+  { value: 'outline', label: t('ai.content.action.outline') },
+  { value: 'draft', label: t('ai.content.action.draft') },
+  { value: 'improve', label: t('ai.content.action.improve') },
+])
 
 const { state: slugState } = useSlugAvailability(slug, checkNewsletterSlug, { ignore: editingId })
 
@@ -236,6 +260,64 @@ function cancel(): void {
   void router.push({ name: 'platform.newsletters' })
 }
 
+/* ------------------------------------------------------------ ai assistant */
+
+function onAiActionChange(value: string): void {
+  aiAction.value = value as AiNewsletterAction
+}
+
+/** Ask the assistant for content. Anything it returns stays in the editor. */
+async function runContentAssistant(): Promise<void> {
+  if (aiLoading.value) return
+
+  const brief = aiBrief.value.trim()
+  if (brief === '') {
+    aiError.value = t('ai.content.brief')
+    return
+  }
+
+  if (aiAction.value === 'improve' && isBlankHtml(body.value)) {
+    aiError.value = t('ai.content.improveNeedsBody')
+    return
+  }
+
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    aiResult.value = await generateNewsletterContent({
+      action: aiAction.value,
+      brief,
+      audience: aiAudience.value.trim() || null,
+      body: aiAction.value === 'improve' ? body.value : null,
+    })
+  } catch (caught) {
+    aiError.value = aiErrorMessage(caught, t)
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+/** Carry a suggested field into the form; the author still saves it. */
+function useAiTitle(): void {
+  if (aiResult.value) title.value = aiResult.value.title
+}
+
+function useAiExcerpt(): void {
+  if (aiResult.value) excerpt.value = aiResult.value.excerpt
+}
+
+function useAiBody(): void {
+  if (aiResult.value) body.value = aiResult.value.body
+}
+
+function useAiAll(): void {
+  if (!aiResult.value) return
+  title.value = aiResult.value.title
+  excerpt.value = aiResult.value.excerpt
+  body.value = aiResult.value.body
+  toast.success(t('ai.content.applied'))
+}
+
 onMounted(() => {
   if (route.params.id) {
     void load()
@@ -338,6 +420,85 @@ onMounted(() => {
               :rows="3"
               :maxlength="300"
             />
+          </div>
+
+          <div v-if="canUseAi" class="surface space-y-4 p-5">
+            <div class="flex items-center gap-2">
+              <span class="grid size-8 place-items-center rounded-lg bg-brand-soft text-brand-ink">
+                <Sparkles class="size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 class="text-h4 font-semibold text-ink">{{ t('ai.content.title') }}</h2>
+                <p class="mt-0.5 text-caption text-muted">{{ t('ai.content.description') }}</p>
+              </div>
+            </div>
+
+            <BaseSelect
+              :model-value="aiAction"
+              :label="t('ai.content.action')"
+              :options="aiActionOptions"
+              @update:model-value="onAiActionChange"
+            />
+
+            <BaseTextarea
+              v-model="aiBrief"
+              :label="t('ai.content.brief')"
+              :placeholder="t('ai.content.briefPlaceholder')"
+              :rows="2"
+            />
+
+            <BaseInput
+              v-model="aiAudience"
+              :label="t('ai.content.audience')"
+              :placeholder="t('ai.content.audiencePlaceholder')"
+            />
+
+            <BaseButton
+              size="sm"
+              :icon="Sparkles"
+              :loading="aiLoading"
+              :disabled="aiLoading"
+              @click="runContentAssistant"
+            >
+              {{ t('ai.content.generate') }}
+            </BaseButton>
+
+            <BaseAlert v-if="aiError" tone="danger" dismissible @dismiss="aiError = null">
+              {{ aiError }}
+            </BaseAlert>
+
+            <div v-if="aiLoading" class="space-y-3" aria-hidden="true">
+              <BaseSkeleton height="h-4" block />
+              <BaseSkeleton class="w-5/6" height="h-4" block />
+              <p class="text-small text-muted">{{ t('ai.content.loading') }}</p>
+            </div>
+
+            <div v-else-if="aiResult" class="space-y-3 rounded-lg border border-line bg-surface-2 p-3">
+              <p class="text-caption font-semibold uppercase tracking-wide text-subtle">
+                {{ t('ai.content.resultTitle') }}
+              </p>
+              <div>
+                <p class="text-sm font-medium text-ink">{{ aiResult.title }}</p>
+                <p class="text-small text-muted">{{ aiResult.excerpt }}</p>
+              </div>
+              <div
+                class="rich-content max-h-48 overflow-auto text-sm leading-relaxed text-ink"
+                v-html="aiResult.body"
+              />
+              <div class="flex flex-wrap gap-1.5">
+                <BaseButton size="sm" variant="secondary" @click="useAiTitle">
+                  {{ t('ai.content.useTitle') }}
+                </BaseButton>
+                <BaseButton size="sm" variant="secondary" @click="useAiExcerpt">
+                  {{ t('ai.content.useExcerpt') }}
+                </BaseButton>
+                <BaseButton size="sm" variant="secondary" @click="useAiBody">
+                  {{ t('ai.content.useBody') }}
+                </BaseButton>
+                <BaseButton size="sm" @click="useAiAll">{{ t('ai.content.useAll') }}</BaseButton>
+              </div>
+              <p class="text-caption text-subtle">{{ t('ai.content.disclaimer') }}</p>
+            </div>
           </div>
         </div>
       </div>

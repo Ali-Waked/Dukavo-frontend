@@ -12,6 +12,8 @@ import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
 } from '@/services/profileService'
+import { fetchNotificationChannelAvailability } from '@/services/notificationService'
+import type { NotificationChannelAvailabilityMap } from '@/types/notifications'
 import {
   NOTIFICATION_CHANNELS,
   type NotificationChannel,
@@ -31,6 +33,7 @@ const { t, tDynamic } = useI18n()
 const toast = useToast()
 
 const preferences = ref<NotificationPreferences | null>(null)
+const availability = ref<NotificationChannelAvailabilityMap | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 const loadError = ref<string | null>(null)
@@ -49,22 +52,36 @@ const CHANNEL_META: Record<
 }
 
 const channels = computed(() =>
-  (Object.keys(NOTIFICATION_CHANNELS) as NotificationChannel[]).map((channel) => ({
-    key: channel,
-    icon: CHANNEL_META[channel].icon,
-    label: t(CHANNEL_META[channel].labelKey),
-    description: t(CHANNEL_META[channel].descKey),
-    events: NOTIFICATION_CHANNELS[channel].map((event) => ({
-      key: event,
-      label: tDynamic('notifications.event', event),
-      hint: tDynamic('notifications.eventHint', event),
-    })),
-  })),
+  (Object.keys(NOTIFICATION_CHANNELS) as NotificationChannel[]).map((channel) => {
+    const state = availability.value?.[channel]
+
+    return {
+      key: channel,
+      icon: CHANNEL_META[channel].icon,
+      label: t(CHANNEL_META[channel].labelKey),
+      description: t(CHANNEL_META[channel].descKey),
+      // A channel the server cannot send on stays visible but frozen, with the
+      // reason beside it, so the switch never promises a message that will not go.
+      available: state?.available ?? true,
+      unavailableReason: state?.reason ? tDynamic('notifications.unavailable', state.reason) : null,
+      events: NOTIFICATION_CHANNELS[channel].map((event) => ({
+        key: event,
+        label: tDynamic('notifications.event', event),
+        hint: tDynamic('notifications.eventHint', event),
+      })),
+    }
+  }),
 )
 
 onMounted(async () => {
   try {
-    preferences.value = await fetchNotificationPreferences()
+    const [loadedPreferences, loadedAvailability] = await Promise.all([
+      fetchNotificationPreferences(),
+      fetchNotificationChannelAvailability().catch(() => null),
+    ])
+
+    preferences.value = loadedPreferences
+    availability.value = loadedAvailability
   } catch (error) {
     loadError.value = error instanceof ApiError ? error.message : t('notifications.loadFailed')
   } finally {
@@ -128,7 +145,10 @@ async function save(): Promise<void> {
           </span>
           <div class="min-w-0">
             <h2 class="text-h4 font-semibold text-ink">{{ channel.label }}</h2>
-            <p class="mt-1 text-small text-muted">{{ channel.description }}</p>
+            <p class="mt-0.5 text-small text-muted">{{ channel.description }}</p>
+            <p v-if="!channel.available" class="mt-1 text-caption text-warning-ink">
+              {{ channel.unavailableReason }}
+            </p>
           </div>
         </div>
 
@@ -136,9 +156,10 @@ async function save(): Promise<void> {
           <BaseSwitch
             v-for="event in channel.events"
             :key="event.key"
-            :model-value="isOn(channel.key, event.key)"
             :label="event.label"
             :hint="event.hint"
+            :model-value="isOn(channel.key, event.key)"
+            :disabled="!channel.available"
             @update:model-value="setOn(channel.key, event.key, $event)"
           />
         </div>
