@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import { ArrowRight } from '@/components/icons'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 
@@ -33,10 +32,6 @@ onMounted(() => {
             المنتجات، المخزون، الطلبات، العملاء ومحادثات WhatsApp — كل ما تحتاجه لإدارة تجارتك في منصة واحدة.
           </p>
           <div class="mt-8 flex flex-wrap items-center gap-3" data-aos="fade-up" data-aos-delay="200">
-            <BaseButton size="lg" to="/register">
-              ابدأ مجانًا
-              <ArrowRight class="size-4" />
-            </BaseButton>
             <BaseButton size="lg" variant="secondary" to="/how-it-works">
               شاهد كيف يعمل Dukavo
             </BaseButton>

@@ -71,6 +71,9 @@ export const PERMISSIONS = {
     view: 'settings.view',
     manage: 'settings.manage',
   },
+  ai: {
+    use: 'ai.use',
+  },
 } as const satisfies Record<string, Record<string, string>>
 
 type Values<T> = T[keyof T]
@@ -102,4 +105,5 @@ export const PERMISSION_MODULES: Array<{
   { module: 'roles', labelKey: 'permission.module.roles', permissions: [PERMISSIONS.roles.view, PERMISSIONS.roles.manage] },
   { module: 'audit', labelKey: 'permission.module.audit', permissions: [PERMISSIONS.audit.view] },
   { module: 'settings', labelKey: 'permission.module.settings', permissions: [PERMISSIONS.settings.view, PERMISSIONS.settings.manage] },
+  { module: 'ai', labelKey: 'permission.module.ai', permissions: [PERMISSIONS.ai.use] },
 ]

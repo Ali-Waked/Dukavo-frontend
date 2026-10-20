@@ -1,36 +1,50 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useI18n } from '@/i18n'
-import { Bell, ChevronDown, LogOut, Menu, Moon, Settings, Sun, UserCog } from '@/components/icons'
+import { ChevronDown, LayoutDashboard, LogOut, Menu, Moon, Settings, Sun, UserCog } from '@/components/icons'
+import BaseDropdown from '@/components/ui/BaseDropdown.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import NotificationBell from '@/components/notifications/NotificationBell.vue'
 import UserAvatar from '@/components/ui/UserAvatar.vue'
+import { useNotificationStore } from '@/stores/notificationStore'
 
 const auth = useAuthStore()
 const ui = useUiStore()
+const notifications = useNotificationStore()
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const userMenuOpen = ref(false)
-const userMenuButton = ref<HTMLButtonElement | null>(null)
-
 const pageTitle = computed(() => String(route.meta.title ?? t('app.name')))
 
-function onDocumentClick(event: MouseEvent): void {
-  if (userMenuOpen.value && userMenuButton.value && !userMenuButton.value.contains(event.target as Node)) {
-    userMenuOpen.value = false
-  }
-}
+/**
+ * The dashboard that matches the signed-in account's type.
+ *
+ * A platform operator always lands on the platform overview — that surface is
+ * reachable by every platform role, whereas a workspace dashboard depends on
+ * tenant-scoped permissions they may not hold. A merchant only ever sees their
+ * own workspace dashboard; the platform route is never offered to them.
+ */
+const dashboardRoute = computed(() =>
+  auth.isPlatformUser ? { name: 'platform.dashboard' } : { name: 'dashboard.index' },
+)
 
-document.addEventListener('click', onDocumentClick)
-onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
+const accountMenuLabel = computed(() =>
+  auth.user?.name ? `${t('nav.accountMenu')}: ${auth.user.name}` : t('nav.accountMenu'),
+)
 
 async function handleLogout(): Promise<void> {
-  await auth.logout()
-  await router.push({ name: 'auth.login' })
+  try {
+    await auth.logout()
+  } finally {
+    // Drop user-specific state so a following session on the same device can
+    // never read the previous account's notifications, then leave the shell.
+    notifications.reset()
+    await router.push({ name: 'auth.login' })
+  }
 }
 </script>
 
@@ -52,15 +66,7 @@ async function handleLogout(): Promise<void> {
     <div class="flex items-center gap-1.5">
       <LanguageSwitcher />
 
-      <button
-        type="button"
-        class="btn-icon relative"
-        :title="t('nav.notifications') ?? 'Notifications'"
-        aria-label="Notifications"
-      >
-        <Bell class="size-5" />
-        <span class="pointer-events-none absolute end-1.5 top-1.5 size-2 rounded-full bg-accent-400 ring-2 ring-surface" />
-      </button>
+      <NotificationBell />
 
       <button
         type="button"
@@ -74,57 +80,76 @@ async function handleLogout(): Promise<void> {
       </button>
     </div>
 
-    <div class="relative">
-      <button
-        ref="userMenuButton"
-        type="button"
-        class="flex items-center gap-2 rounded-lg px-1.5 py-1 text-start transition hover:bg-surface-2"
-        @click="userMenuOpen = !userMenuOpen"
-      >
-        <UserAvatar :name="auth.user?.name" :src="auth.user?.avatar_url" size="sm" />
-        <span class="hidden max-w-40 truncate text-sm font-medium text-ink sm:block">
-          {{ auth.user?.name }}
-        </span>
-        <ChevronDown class="hidden size-4 shrink-0 text-muted sm:block" aria-hidden="true" />
-      </button>
-
-      <Transition name="pop">
-        <div
-          v-if="userMenuOpen"
-          class="absolute end-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-lg border border-line bg-surface shadow-lg"
+    <BaseDropdown align="end">
+      <template #trigger="{ open }">
+        <button
+          type="button"
+          class="flex items-center gap-2 rounded-lg px-1.5 py-1 text-start transition hover:bg-surface-2"
+          aria-haspopup="menu"
+          :aria-expanded="open"
+          :aria-label="accountMenuLabel"
         >
-          <div class="border-b border-line px-4 py-3">
-            <p class="truncate text-sm font-semibold text-ink">{{ auth.user?.name }}</p>
-            <p class="truncate text-xs text-muted">{{ auth.user?.email }}</p>
+          <UserAvatar :name="auth.user?.name" :src="auth.user?.avatar_url" size="sm" />
+          <span class="hidden max-w-40 truncate text-sm font-medium text-ink sm:block">
+            {{ auth.user?.name }}
+          </span>
+          <ChevronDown class="hidden size-4 shrink-0 text-muted sm:block" aria-hidden="true" />
+        </button>
+      </template>
+
+      <template #default="{ close }">
+        <div class="w-64 max-w-[calc(100vw-2rem)]">
+          <div class="flex items-center gap-3 border-b border-line px-4 py-3" role="presentation">
+            <UserAvatar :name="auth.user?.name" :src="auth.user?.avatar_url" size="md" />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-ink" dir="auto">{{ auth.user?.name }}</p>
+              <p class="truncate text-xs text-muted" dir="auto">{{ auth.user?.email }}</p>
+            </div>
           </div>
-          <div class="p-1.5">
+
+          <div class="p-1.5" role="presentation">
+            <RouterLink
+              :to="dashboardRoute"
+              role="menuitem"
+              class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink transition hover:bg-surface-2"
+              @click="close()"
+            >
+              <LayoutDashboard class="size-4 text-muted" aria-hidden="true" />
+              {{ t('nav.dashboard') }}
+            </RouterLink>
+
             <RouterLink
               to="/profile"
+              role="menuitem"
               class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink transition hover:bg-surface-2"
-              @click="userMenuOpen = false"
+              @click="close()"
             >
               <UserCog class="size-4 text-muted" aria-hidden="true" />
               {{ t('nav.profile') }}
             </RouterLink>
+
             <RouterLink
               to="/settings"
+              role="menuitem"
               class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink transition hover:bg-surface-2"
-              @click="userMenuOpen = false"
+              @click="close()"
             >
               <Settings class="size-4 text-muted" aria-hidden="true" />
               {{ t('nav.settings') }}
             </RouterLink>
+
             <button
               type="button"
+              role="menuitem"
               class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink transition hover:bg-surface-2"
-              @click="handleLogout()"
+              @click="close(); handleLogout()"
             >
               <LogOut class="size-4 text-muted" aria-hidden="true" />
               {{ t('common.signOut') }}
             </button>
           </div>
         </div>
-      </Transition>
-    </div>
+      </template>
+    </BaseDropdown>
   </header>
 </template>

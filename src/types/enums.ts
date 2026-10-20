@@ -28,6 +28,7 @@ export type WhatsappStatus = 'pending' | 'connected' | 'disconnected' | 'error'
 export type MessageDirection = 'inbound' | 'outbound'
 export type MessageType = 'text' | 'image' | 'audio' | 'file' | 'system'
 export type InventoryMovementType =
+  | 'initial'
   | 'purchase'
   | 'sale'
   | 'return_in'

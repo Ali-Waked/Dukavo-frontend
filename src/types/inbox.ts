@@ -75,3 +75,29 @@ export interface WhatsappAccount {
   created_at?: string | null
   updated_at?: string | null
 }
+
+/**
+ * `GET /whatsapp-accounts/configuration` — the installation's platform-level
+ * WhatsApp setup, as booleans and public URLs.
+ *
+ * It carries no secret by construction: it exists so the page can say what is
+ * missing and why nothing arrives, which it cannot infer from the accounts
+ * alone. `signature_validation` is the one that decides whether Meta's inbound
+ * deliveries are checked or refused outright.
+ */
+export interface WhatsappConfiguration {
+  api_version: string | null
+  api_host: string | null
+  configured: {
+    phone_number_id: boolean
+    business_account_id: boolean
+    access_token: boolean
+    webhook_verify_token: boolean
+    app_secret: boolean
+  }
+  webhook: {
+    verify_url: string
+    events_url: string
+    signature_validation: 'enforced' | 'not_configured'
+  }
+}

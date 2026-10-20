@@ -15,6 +15,7 @@ export interface Role {
   scope: RoleScope
   scope_label?: string
   description?: string | null
+  tenant_id?: number | null
   is_system: boolean
   requires_tenant: boolean
   permissions?: Permission[]

@@ -46,9 +46,6 @@ const { effectiveTheme, store: ui } = useTheme()
           <BaseButton to="/login" variant="ghost" size="sm" class="hidden sm:inline-flex">
             {{ t('marketing.nav.login') }}
           </BaseButton>
-          <BaseButton to="/register" size="sm">
-            {{ t('marketing.cta.startFree') }}
-          </BaseButton>
         </template>
       </div>
     </header>

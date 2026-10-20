@@ -74,21 +74,6 @@ export interface LoginPayload {
   password: string
 }
 
-/** `POST /api/v1/auth/register` — a new merchant account. */
-export interface RegisterPayload {
-  name: string
-  email: string
-  password: string
-  password_confirmation: string
-}
-
-/** The signup answer mirrors login: the user plus a ready-to-use token. */
-export interface RegisterResponse {
-  user: SessionUser
-  token: string
-  token_type: string
-}
-
 /** `POST /api/v1/onboarding/tenant` — the account's first workspace. */
 export interface ProvisionTenantPayload {
   name: string
@@ -103,14 +88,4 @@ export interface ProvisionedTenant {
   currency?: string
   timezone?: string
   locale?: string | null
-}
-
-/** Everything the signup form collects: account details plus a workspace. */
-export interface RegistrationDetails {
-  name: string
-  email: string
-  password: string
-  password_confirmation: string
-  workspace_name: string
-  store_name?: string
 }

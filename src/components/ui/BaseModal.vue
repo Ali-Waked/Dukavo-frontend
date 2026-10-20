@@ -102,7 +102,7 @@ onBeforeUnmount(() => {
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="open" class="fixed inset-0 z-[55] flex items-end justify-center overflow-y-auto p-4 sm:items-center">
+      <div v-if="open" class="fixed inset-0 z-[55] flex items-center justify-center p-4">
         <div
           class="fixed inset-0 bg-scrim backdrop-blur-[2px]"
           aria-hidden="true"
@@ -116,10 +116,10 @@ onBeforeUnmount(() => {
             aria-modal="true"
             :aria-label="title"
             :aria-describedby="description ? 'modal-description' : undefined"
-            class="relative w-full rounded-xl border border-line bg-surface shadow-xl"
+            class="relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-xl"
             :class="sizeClasses[size]"
           >
-            <header class="flex items-start gap-4 border-b border-line px-5 py-4">
+            <header class="flex shrink-0 items-start gap-4 border-b border-line px-5 py-4">
               <div class="min-w-0 flex-1">
                 <h2 v-if="title" class="text-h4 font-semibold text-ink">{{ title }}</h2>
                 <p v-if="description" id="modal-description" class="mt-1 text-small text-muted">
@@ -137,11 +137,11 @@ onBeforeUnmount(() => {
               </button>
             </header>
 
-            <div class="px-5 py-4">
+            <div class="flex-1 overflow-y-auto px-5 py-4">
               <slot />
             </div>
 
-            <footer v-if="$slots.footer" class="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2 px-5 py-3">
+            <footer v-if="$slots.footer" class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2 px-5 py-3">
               <slot name="footer" />
             </footer>
           </div>

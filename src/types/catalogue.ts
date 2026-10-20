@@ -19,9 +19,12 @@ export interface ProductVariant {
 
 export interface ProductImage {
   id: number
+  product_id?: number
+  product_variant_id?: number | null
   url?: string
   path?: string
-  alt?: string | null
+  disk?: string
+  alt_text: string | null
   position?: number
   is_primary?: boolean
 }

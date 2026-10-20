@@ -94,6 +94,7 @@ export const WHATSAPP_STATUS: Record<WhatsappStatus, StatusMeta> = {
 }
 
 export const MOVEMENT_TYPE: Record<InventoryMovementType, StatusMeta> = {
+  initial: { tone: 'brand', key: 'status.movement.initial' },
   purchase: { tone: 'success', key: 'status.movement.purchase' },
   sale: { tone: 'info', key: 'status.movement.sale' },
   return_in: { tone: 'brand', key: 'status.movement.return_in' },

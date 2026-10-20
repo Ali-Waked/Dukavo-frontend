@@ -126,7 +126,6 @@ async function submit(): Promise<void> {
           <h3 class="text-sm font-semibold text-ink">{{ t('marketing.footer.resources') }}</h3>
           <ul class="mt-3 space-y-2 text-sm text-muted">
             <li><RouterLink to="/help" class="transition hover:text-ink">{{ t('marketing.nav.help') }}</RouterLink></li>
-            <li><RouterLink to="/waitlist" class="transition hover:text-ink">{{ t('marketing.nav.waitlist') }}</RouterLink></li>
             <li><RouterLink to="/contact" class="transition hover:text-ink">{{ t('marketing.nav.contact') }}</RouterLink></li>
           </ul>
         </div>
