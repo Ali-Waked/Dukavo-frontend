@@ -4,8 +4,6 @@ import type {
   LoginResponse,
   ProvisionedTenant,
   ProvisionTenantPayload,
-  RegisterPayload,
-  RegisterResponse,
   Session,
 } from '@/types/auth'
 
@@ -24,7 +22,6 @@ import type {
 
 const PATHS = {
   login: '/auth/login',
-  register: '/auth/register',
   onboarding: '/onboarding/tenant',
   logout: '/auth/logout',
   forgotPassword: '/auth/forgot-password',
@@ -73,18 +70,6 @@ export async function logout(): Promise<void> {
 /** Everything the SPA needs to render navigation, guards and buttons. */
 export function fetchSession(): Promise<Session> {
   return api.get<Session>(PATHS.me)
-}
-
-/**
- * Create a new merchant account.
- *
- * Like login, this is a stateful first-party POST, so the CSRF cookie is primed
- * first. The account is left token-less here — the store attaches the returned
- * bearer token, then provisions the first workspace.
- */
-export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
-  await ensureCsrfToken()
-  return api.post<RegisterResponse>(PATHS.register, payload)
 }
 
 /**

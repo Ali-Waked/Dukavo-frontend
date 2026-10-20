@@ -42,31 +42,31 @@ export function fetchConversations(
 }
 
 export function fetchConversation(id: number): Promise<Conversation> {
-  return api.get<Conversation>(`/conversations/${id}`)
+  return api.get<Conversation>(`/tenant/conversations/${id}`)
 }
 
 export function fetchMessages(
   id: number,
   params: { page?: number; per_page?: number } = {},
 ): Promise<Paginated<ConversationMessage>> {
-  return api.list<ConversationMessage>(`/conversations/${id}/messages`, {
+  return api.list<ConversationMessage>(`/tenant/conversations/${id}/messages`, {
     ...(params as Record<string, unknown>),
   })
 }
 
 export function updateConversation(id: number, payload: ConversationPayload): Promise<Conversation> {
-  return api.patch<Conversation>(`/conversations/${id}`, payload)
+  return api.patch<Conversation>(`/tenant/conversations/${id}`, payload)
 }
 
 export function deleteConversation(id: number): Promise<void> {
-  return api.delete<void>(`/conversations/${id}`)
+  return api.delete<void>(`/tenant/conversations/${id}`)
 }
 
 /** Send a reply into the thread. */
 export function sendReply(id: number, body: string): Promise<ConversationMessage> {
-  return api.post<ConversationMessage>(`/conversations/${id}/messages`, { body })
+  return api.post<ConversationMessage>(`/tenant/conversations/${id}/messages`, { body })
 }
 
 export function assignConversation(id: number, userId: number | null): Promise<Conversation> {
-  return api.post<Conversation>(`/conversations/${id}/assign`, { user_id: userId })
+  return api.post<Conversation>(`/tenant/conversations/${id}/assign`, { user_id: userId })
 }

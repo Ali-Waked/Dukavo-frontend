@@ -7,19 +7,10 @@ import type { ContentPage, FaqEntry, MarketingFeature, NewsletterArticle, Newsle
  * forms. Everything here is unauthenticated and rate-limited by the server;
  * the client's job is only to shape the request and unwrap the envelope.
  *
- * The three forms answer with generic success copy regardless of outcome (no
- * email enumeration), so the pages never branch on the response body — a 2xx
- * means "we have it", whatever state it landed in.
+ * The forms answer with generic success copy regardless of outcome (no email
+ * enumeration), so the pages never branch on the response body — a 2xx means
+ * "we have it", whatever state it landed in.
  */
-
-export interface JoinWaitlistPayload {
-  email: string
-  name?: string
-  business_type?: string
-  source?: string
-  /** Honeypot — styled invisible; the server ignores it, bots cannot. */
-  website?: string
-}
 
 export interface ContactMessagePayload {
   name: string
@@ -56,10 +47,6 @@ export function fetchPublicFaq(): Promise<FaqEntry[]> {
  */
 export function fetchPublicContentPage(key: string): Promise<ContentPage> {
   return api.get<ContentPage>(`/public/pages/${key}`)
-}
-
-export function joinWaitlist(payload: JoinWaitlistPayload): Promise<void> {
-  return api.post<void>('/public/waitlist', payload)
 }
 
 export function submitContact(payload: ContactMessagePayload): Promise<void> {

@@ -1,7 +1,7 @@
 import { api } from '@/lib/axiosClient'
 import type { Paginated } from '@/types/api'
 import type { ProductStatus } from '@/types/enums'
-import type { Product } from '@/types/catalogue'
+import type { Product, ProductImage } from '@/types/catalogue'
 
 /**
  * The product catalogue.
@@ -39,12 +39,17 @@ export interface ProductPayload {
   category_id?: number | null
   store_id?: number | null
   variants?: Array<{
+    /** Present when editing an existing variant, so it is updated in place
+     *  rather than deleted and recreated (which would drop its inventory). */
+    id?: number
     name: string
     sku?: string | null
     barcode?: string | null
     price: number
     cost?: number | null
     is_default?: boolean
+    /** Opening stock, create only. Records an `initial` ledger movement. */
+    initial_quantity?: number
   }>
 }
 
@@ -93,4 +98,43 @@ export function deleteProduct(slug: string, options: { force?: boolean } = {}): 
  */
 export function checkProductSlug(slug: string, ignore?: number): Promise<SlugAvailability> {
   return api.get<SlugAvailability>('/tenant/products/slug-availability', { slug, ignore })
+}
+
+/* --------------------------------------------------------------- gallery */
+
+/**
+ * Upload images to a product. A product is created first (JSON), then its files
+ * are posted here in a multipart request — the product must already exist to own
+ * its gallery. `altTexts` is index-matched to `files`.
+ */
+export function uploadProductImages(
+  slug: string,
+  files: File[],
+  altTexts: Array<string | null> = [],
+): Promise<ProductImage[]> {
+  const form = new FormData()
+  files.forEach((file) => form.append('images[]', file))
+  altTexts.forEach((text, index) => {
+    if (text != null && text !== '') {
+      form.append(`alt_text[${index}]`, text)
+    }
+  })
+
+  return api.post<ProductImage[]>(`/tenant/products/${slug}/images`, form)
+}
+
+export function updateProductImage(
+  slug: string,
+  imageId: number,
+  payload: { alt_text?: string | null; is_primary?: boolean; position?: number },
+): Promise<ProductImage> {
+  return api.patch<ProductImage>(`/tenant/products/${slug}/images/${imageId}`, payload)
+}
+
+export function deleteProductImage(slug: string, imageId: number): Promise<void> {
+  return api.delete<void>(`/tenant/products/${slug}/images/${imageId}`)
+}
+
+export function reorderProductImages(slug: string, ids: number[]): Promise<ProductImage[]> {
+  return api.post<ProductImage[]>(`/tenant/products/${slug}/images/reorder`, { images: ids })
 }

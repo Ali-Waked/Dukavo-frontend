@@ -31,6 +31,8 @@ export interface PlatformUserPayload {
   phone?: string | null
   /** Blank invites without a password; the member sets it via forgot-password. */
   password?: string | null
+  /** Must accompany `password`: the backend validates it with Laravel's `confirmed` rule. */
+  password_confirmation?: string | null
   locale?: string | null
   /** Platform scoped role only — the backend refuses tenant roles with a 422. */
   role_id: number

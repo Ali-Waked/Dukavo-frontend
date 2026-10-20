@@ -25,6 +25,8 @@ export interface UserPayload {
   phone?: string | null
   /** Omit to invite without a password; the member sets it via the forgot-password flow. */
   password?: string | null
+  /** Must accompany `password`: the backend validates it with Laravel's `confirmed` rule. */
+  password_confirmation?: string | null
   status?: UserStatus
   locale?: string | null
   role_id: number

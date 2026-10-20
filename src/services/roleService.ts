@@ -6,10 +6,10 @@ import type { Role } from '@/types/admin'
  * Roles.
  *
  * Permission syncing goes through `PATCH /roles/{role}` with a `permissions`
- * array: the controller routes it into `RoleService::updateRole`, which refuses
- * anything that would unbuild a system role. The dedicated
- * `PUT /roles/{role}/permissions` route is not used because the backend
- * registers it without a controller method to back it.
+ * array so details and permissions travel one guarded path: the controller
+ * routes it into `RoleService::updateRole`, which refuses anything that would
+ * unbuild a system role with a 409. The dedicated `PUT /roles/{role}/permissions`
+ * route exists and is equivalent; the client just does not need a second call.
  *
  * The same controller backs both contexts — `base: 'tenant'` resolves the
  * workspace team routes, `base: 'platform'` resolves the platform catalogue. In
