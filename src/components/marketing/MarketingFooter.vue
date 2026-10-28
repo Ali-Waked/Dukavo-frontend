@@ -12,11 +12,15 @@ import { subscribeNewsletter } from '@/services/marketingService'
 /**
  * Footer shared by every surface page.
  *
- * The newsletter signup lives here rather than on the homepage so subscribing
- * is possible from anywhere. Like the other public forms it carries the
- * `website` honeypot; the happy path is a quiet inline confirmation instead of
- * a toast so it never steals focus from the page footer.
+ * The newsletter signup lives here so subscribing is possible from anywhere.
+ * A page that carries its own newsletter capture (the homepage) passes
+ * `showNewsletter=false` so the same form never appears twice in one view.
+ * Like the other public forms it carries the `website` honeypot; the happy
+ * path is a quiet inline confirmation instead of a toast so it never steals
+ * focus from the page footer.
  */
+
+withDefaults(defineProps<{ showNewsletter?: boolean }>(), { showNewsletter: true })
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -70,7 +74,7 @@ async function submit(): Promise<void> {
   <footer class="border-t border-line bg-surface-2 py-12">
     <div class="mx-auto max-w-7xl px-4 md:px-6">
       <!-- Newsletter -->
-      <div class="mb-12 rounded-2xl border border-line bg-surface p-6 md:p-8">
+      <div v-if="showNewsletter" class="mb-12 rounded-2xl border border-line bg-surface p-6 md:p-8">
         <div class="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div>
             <h2 class="text-h3 font-semibold text-ink">{{ t('newsletter.title') }}</h2>
@@ -107,8 +111,8 @@ async function submit(): Promise<void> {
       </div>
 
       <!-- Link columns -->
-      <div class="grid gap-8 md:grid-cols-4">
-        <div>
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="sm:col-span-2 lg:col-span-1">
           <AppLogo variant="full" :height="36" />
           <p class="mt-3 text-sm text-muted">{{ t('marketing.footer.tagline') }}</p>
         </div>
@@ -119,13 +123,22 @@ async function submit(): Promise<void> {
             <li><RouterLink to="/features" class="transition hover:text-ink">{{ t('marketing.nav.features') }}</RouterLink></li>
             <li><RouterLink to="/pricing" class="transition hover:text-ink">{{ t('marketing.nav.pricing') }}</RouterLink></li>
             <li><RouterLink to="/how-it-works" class="transition hover:text-ink">{{ t('marketing.nav.howItWorks') }}</RouterLink></li>
+            <li><RouterLink to="/login" class="transition hover:text-ink">{{ t('marketing.nav.login') }}</RouterLink></li>
           </ul>
         </div>
 
         <div>
           <h3 class="text-sm font-semibold text-ink">{{ t('marketing.footer.resources') }}</h3>
           <ul class="mt-3 space-y-2 text-sm text-muted">
+            <li><RouterLink to="/blog" class="transition hover:text-ink">{{ t('marketing.nav.blog') }}</RouterLink></li>
             <li><RouterLink to="/help" class="transition hover:text-ink">{{ t('marketing.nav.help') }}</RouterLink></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-ink">{{ t('marketing.footer.company') }}</h3>
+          <ul class="mt-3 space-y-2 text-sm text-muted">
+            <li><RouterLink to="/about" class="transition hover:text-ink">{{ t('marketing.footer.about') }}</RouterLink></li>
             <li><RouterLink to="/contact" class="transition hover:text-ink">{{ t('marketing.nav.contact') }}</RouterLink></li>
           </ul>
         </div>
@@ -135,7 +148,7 @@ async function submit(): Promise<void> {
           <ul class="mt-3 space-y-2 text-sm text-muted">
             <li><RouterLink to="/terms" class="transition hover:text-ink">{{ t('marketing.footer.terms') }}</RouterLink></li>
             <li><RouterLink to="/privacy" class="transition hover:text-ink">{{ t('marketing.footer.privacy') }}</RouterLink></li>
-            <li><RouterLink to="/about" class="transition hover:text-ink">{{ t('marketing.footer.about') }}</RouterLink></li>
+            <li><RouterLink to="/acceptable-use" class="transition hover:text-ink">{{ t('marketing.footer.acceptableUse') }}</RouterLink></li>
           </ul>
         </div>
       </div>

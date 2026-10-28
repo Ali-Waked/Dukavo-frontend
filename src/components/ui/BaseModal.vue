@@ -17,7 +17,7 @@ const props = withDefaults(
     open: boolean
     title?: string
     description?: string
-    size?: 'sm' | 'md' | 'lg'
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
     /** Disable closing via backdrop click or Escape (blocking confirmations). */
     persistent?: boolean
   }>(),
@@ -39,6 +39,8 @@ const sizeClasses = {
   sm: 'max-w-sm',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
+  xl: 'max-w-5xl',
+  full: 'h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)]',
 } as const
 
 function focusables(): HTMLElement[] {

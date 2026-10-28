@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import {
   Bell,
   Check,
+  EyeOff,
   MessageSquare,
   Package,
   ShoppingCart,
@@ -68,6 +69,10 @@ function markRead(): void {
   void notifications.markRead(props.notification.id)
 }
 
+function markUnread(): void {
+  void notifications.markUnread(props.notification.id)
+}
+
 function dismiss(): void {
   void notifications.dismiss(props.notification.id)
 }
@@ -114,6 +119,17 @@ function dismiss(): void {
         @click.stop="markRead"
       >
         <Check class="size-4" />
+      </button>
+
+      <button
+        v-else
+        type="button"
+        class="btn-icon"
+        :title="t('notifications.center.markUnread')"
+        :aria-label="t('notifications.center.markUnread')"
+        @click.stop="markUnread"
+      >
+        <EyeOff class="size-4" />
       </button>
 
       <button

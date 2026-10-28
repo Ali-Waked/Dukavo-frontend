@@ -10,6 +10,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import NotificationBell from '@/components/notifications/NotificationBell.vue'
 import UserAvatar from '@/components/ui/UserAvatar.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { useDashboardRoute } from '@/composables/useDashboardRoute'
 
 const auth = useAuthStore()
 const ui = useUiStore()
@@ -20,17 +21,7 @@ const router = useRouter()
 
 const pageTitle = computed(() => String(route.meta.title ?? t('app.name')))
 
-/**
- * The dashboard that matches the signed-in account's type.
- *
- * A platform operator always lands on the platform overview — that surface is
- * reachable by every platform role, whereas a workspace dashboard depends on
- * tenant-scoped permissions they may not hold. A merchant only ever sees their
- * own workspace dashboard; the platform route is never offered to them.
- */
-const dashboardRoute = computed(() =>
-  auth.isPlatformUser ? { name: 'platform.dashboard' } : { name: 'dashboard.index' },
-)
+const dashboardRoute = useDashboardRoute()
 
 const accountMenuLabel = computed(() =>
   auth.user?.name ? `${t('nav.accountMenu')}: ${auth.user.name}` : t('nav.accountMenu'),
