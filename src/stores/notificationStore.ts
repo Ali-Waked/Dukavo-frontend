@@ -7,9 +7,14 @@ import {
   fetchUnreadCount,
   markAllNotificationsRead,
   markNotificationRead,
+  markNotificationUnread,
 } from '@/services/notificationService'
 import type { Paginated } from '@/types/api'
-import type { AppNotification, NotificationReadFilter } from '@/types/notifications'
+import type {
+  AppNotification,
+  NotificationReadFilter,
+  NotificationSeverity,
+} from '@/types/notifications'
 
 /**
  * The bell, the centre and the unread badge, in one store.
@@ -51,12 +56,24 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   /** Load the centre's list for a filter and page. */
-  async function load(filter: NotificationReadFilter = 'all', page = 1): Promise<void> {
+  async function load(
+    filter: NotificationReadFilter = 'all',
+    page = 1,
+    filters: {
+      category?: string | null
+      severity?: NotificationSeverity | null
+    } = {},
+  ): Promise<void> {
     loading.value = true
     error.value = null
 
     try {
-      const result = await fetchNotifications({ status: filter, page })
+      const result = await fetchNotifications({
+        status: filter,
+        page,
+        ...(filters.category ? { category: filters.category } : {}),
+        ...(filters.severity ? { severity: filters.severity } : {}),
+      })
       items.value = result.data
       meta.value = result.meta
     } catch (caught) {
@@ -84,6 +101,11 @@ export const useNotificationStore = defineStore('notifications', () => {
     notification.read_at = notification.read_at ?? new Date().toISOString()
   }
 
+  function applyUnreadLocally(notification: AppNotification): void {
+    notification.read = false
+    notification.read_at = null
+  }
+
   async function markRead(id: string): Promise<void> {
     const target = items.value.find((item) => item.id === id)
 
@@ -100,6 +122,29 @@ export const useNotificationStore = defineStore('notifications', () => {
       }
 
       unreadCount.value = Math.max(0, unreadCount.value - 1)
+    } catch (caught) {
+      error.value = messageFor(caught, 'action_failed')
+    }
+  }
+
+  async function markUnread(id: string): Promise<void> {
+    const target = items.value.find((item) => item.id === id)
+
+    if (!target?.read) {
+      return
+    }
+
+    try {
+      const updated = await markNotificationUnread(id)
+      const index = items.value.findIndex((item) => item.id === id)
+
+      if (index !== -1) {
+        items.value[index] = updated
+      } else {
+        applyUnreadLocally(target)
+      }
+
+      unreadCount.value += 1
     } catch (caught) {
       error.value = messageFor(caught, 'action_failed')
     }
@@ -173,6 +218,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     load,
     loadPreview,
     markRead,
+    markUnread,
     markAllRead,
     dismiss,
     startPolling,

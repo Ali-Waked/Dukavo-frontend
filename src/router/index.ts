@@ -14,6 +14,7 @@ import HomePage from '@/pages/marketing/HomePage.vue'
 import FeaturesPage from '@/pages/marketing/FeaturesPage.vue'
 import HowItWorksPage from '@/pages/marketing/HowItWorksPage.vue'
 import PricingPage from '@/pages/marketing/PricingPage.vue'
+import WaitlistPage from '@/pages/marketing/WaitlistPage.vue'
 import ContactPage from '@/pages/marketing/ContactPage.vue'
 import AboutPage from '@/pages/marketing/AboutPage.vue'
 import BlogPage from '@/pages/marketing/BlogPage.vue'
@@ -45,6 +46,8 @@ declare module 'vue-router' {
     requiresPlatform?: boolean
     /** Human title for the browser tab and the topbar breadcrumb. */
     title?: string
+    /** Suppresses the shared footer's newsletter card on pages that carry their own. */
+    hideFooterNewsletter?: boolean
   }
 }
 
@@ -55,10 +58,16 @@ const router = createRouter({
       path: '/',
       component: MarketingLayout,
       children: [
-        { path: '', name: 'marketing.home', component: HomePage, meta: { title: 'Dukavo' } },
+        {
+          path: '',
+          name: 'marketing.home',
+          component: HomePage,
+          meta: { title: 'Dukavo', hideFooterNewsletter: true },
+        },
         { path: 'features', name: 'marketing.features', component: FeaturesPage, meta: { title: 'Features' } },
         { path: 'how-it-works', name: 'marketing.how-it-works', component: HowItWorksPage, meta: { title: 'How it works' } },
         { path: 'pricing', name: 'marketing.pricing', component: PricingPage, meta: { title: 'Pricing' } },
+        { path: 'waitlist', name: 'marketing.waitlist', component: WaitlistPage, meta: { title: 'Waitlist' } },
         { path: 'contact', name: 'marketing.contact', component: ContactPage, meta: { title: 'Contact' } },
         { path: 'about', name: 'marketing.about', component: AboutPage, meta: { title: 'About' } },
         { path: 'blog', name: 'marketing.blog', component: BlogPage, meta: { title: 'Blog' } },
@@ -118,6 +127,18 @@ const router = createRouter({
           meta: { permission: 'dashboard.view', title: 'Dashboard' },
         },
         {
+          path: 'profit',
+          name: 'profit.index',
+          component: () => import('@/pages/profit/ProfitPage.vue'),
+          meta: { permission: 'profit.view', title: 'Profit' },
+        },
+        {
+          path: 'analytics',
+          name: 'analytics.index',
+          component: () => import('@/pages/analytics/AnalyticsPage.vue'),
+          meta: { permission: 'dashboard.view', title: 'Analytics' },
+        },
+        {
           path: 'products',
           name: 'catalogue.products',
           component: () => import('@/pages/products/ProductListPage.vue'),
@@ -140,6 +161,12 @@ const router = createRouter({
           name: 'catalogue.products.edit',
           component: () => import('@/pages/products/ProductFormPage.vue'),
           meta: { permission: 'products.update', title: 'Edit product' },
+        },
+        {
+          path: 'bundles',
+          name: 'catalogue.bundles',
+          component: () => import('@/pages/bundles/BundlesPage.vue'),
+          meta: { permission: 'products.view', title: 'Bundles' },
         },
         {
           path: 'categories',
@@ -178,6 +205,18 @@ const router = createRouter({
           meta: { permission: 'orders.view', title: 'Order' },
         },
         {
+          path: 'recovery',
+          name: 'recovery.index',
+          component: () => import('@/pages/recovery/RecoveryPage.vue'),
+          meta: { permission: 'recovery.view', title: 'Lost sales' },
+        },
+        {
+          path: 'automations',
+          name: 'automation.index',
+          component: () => import('@/pages/automation/AutomationsPage.vue'),
+          meta: { permission: 'automation.view', title: 'Automations' },
+        },
+        {
           path: 'conversations',
           name: 'conversations.index',
           component: () => import('@/pages/conversations/ConversationsPage.vue'),
@@ -206,6 +245,18 @@ const router = createRouter({
           name: 'roles.index',
           component: () => import('@/pages/roles/RolesPage.vue'),
           meta: { permission: 'roles.view', title: 'Roles' },
+        },
+        {
+          path: 'ai/approvals',
+          name: 'ai-approvals',
+          component: () => import('@/pages/ai/AiApprovalsPage.vue'),
+          meta: { titleKey: 'ai.approvals.title', permission: 'ai.approve' },
+        },
+        {
+          path: 'ai/merchant-copilot',
+          name: 'ai-merchant-copilot',
+          component: () => import('@/pages/ai/MerchantCopilotPage.vue'),
+          meta: { titleKey: 'ai.merchantCopilot.title', permission: 'ai.use' },
         },
         {
           path: 'audit',
