@@ -1,6 +1,7 @@
 import type { MessageKey } from '@/i18n'
 import type { LucideIcon } from '@/components/icons'
 import {
+  Activity,
   Boxes,
   FileText,
   HelpCircle,
@@ -11,12 +12,15 @@ import {
   MessageSquare,
   Newspaper,
   Package,
+  PackagePlus,
   Settings,
   ShieldCheck,
   ShoppingBag,
   ShoppingCart,
   Store,
   Tags,
+  TrendingDown,
+  TrendingUp,
   UserCog,
   UserPlus,
   Users,
@@ -75,6 +79,34 @@ export const TENANT_NAV_GROUPS: NavGroup[] = [
         permission: 'dashboard.view',
         end: true,
       },
+      {
+        key: 'analytics',
+        labelKey: 'nav.analytics',
+        to: '/analytics',
+        icon: Activity,
+        permission: 'dashboard.view',
+      },
+      {
+        key: 'profit',
+        labelKey: 'nav.profit',
+        to: '/profit',
+        icon: TrendingUp,
+        permission: 'profit.view',
+      },
+      {
+        key: 'ai-approvals',
+        labelKey: 'nav.aiApprovals',
+        to: '/ai/approvals',
+        icon: ShieldCheck,
+        permission: 'ai.use',
+      },
+      {
+        key: 'automations',
+        labelKey: 'nav.automation',
+        to: '/automations',
+        icon: Activity,
+        permission: 'automation.view',
+      },
     ],
   },
   {
@@ -87,6 +119,13 @@ export const TENANT_NAV_GROUPS: NavGroup[] = [
         to: '/orders',
         icon: ShoppingCart,
         permission: 'orders.view',
+      },
+      {
+        key: 'recovery',
+        labelKey: 'nav.recovery',
+        to: '/recovery',
+        icon: TrendingDown,
+        permission: 'recovery.view',
       },
       {
         key: 'customers',
@@ -106,6 +145,13 @@ export const TENANT_NAV_GROUPS: NavGroup[] = [
         labelKey: 'nav.products',
         to: '/products',
         icon: Package,
+        permission: 'products.view',
+      },
+      {
+        key: 'bundles',
+        labelKey: 'nav.bundles',
+        to: '/bundles',
+        icon: PackagePlus,
         permission: 'products.view',
       },
       {

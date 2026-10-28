@@ -1,6 +1,7 @@
 import type { MessageKey } from '@/i18n'
 import type {
   BillingInterval,
+  CartStatus,
   ContactStatus,
   ConversationStatus,
   CustomerStatus,
@@ -11,6 +12,7 @@ import type {
   ProductStatus,
   StoreStatus,
   TenantStatus,
+  AiActionStatus,
   UserStatus,
   WaitlistStatus,
   WhatsappStatus,
@@ -43,6 +45,13 @@ export const ORDER_STATUS: Record<OrderStatus, StatusMeta> = {
   shipped: { tone: 'brand', key: 'status.order.shipped' },
   delivered: { tone: 'success', key: 'status.order.delivered' },
   cancelled: { tone: 'danger', key: 'status.order.cancelled' },
+}
+
+export const CART_STATUS: Record<CartStatus, StatusMeta> = {
+  draft: { tone: 'neutral', key: 'status.cart.draft' },
+  pending_confirmation: { tone: 'warning', key: 'status.cart.pending_confirmation' },
+  converted: { tone: 'success', key: 'status.cart.converted' },
+  cancelled: { tone: 'danger', key: 'status.cart.cancelled' },
 }
 
 export const PAYMENT_STATUS: Record<PaymentStatus, StatusMeta> = {
@@ -100,6 +109,18 @@ export const MOVEMENT_TYPE: Record<InventoryMovementType, StatusMeta> = {
   return_in: { tone: 'brand', key: 'status.movement.return_in' },
   return_out: { tone: 'warning', key: 'status.movement.return_out' },
   adjustment: { tone: 'neutral', key: 'status.movement.adjustment' },
+  transfer_in: { tone: 'brand', key: 'status.movement.transfer_in' },
+  transfer_out: { tone: 'info', key: 'status.movement.transfer_out' },
+}
+
+export const AI_ACTION_STATUS: Record<AiActionStatus, StatusMeta> = {
+  draft: { tone: 'neutral', key: 'status.aiAction.draft' },
+  pending_approval: { tone: 'warning', key: 'status.aiAction.pending_approval' },
+  approved: { tone: 'info', key: 'status.aiAction.approved' },
+  rejected: { tone: 'danger', key: 'status.aiAction.rejected' },
+  executed: { tone: 'success', key: 'status.aiAction.executed' },
+  failed: { tone: 'danger', key: 'status.aiAction.failed' },
+  expired: { tone: 'neutral', key: 'status.aiAction.expired' },
 }
 
 export const WAITLIST_STATUS: Record<WaitlistStatus, StatusMeta> = {

@@ -28,6 +28,15 @@ export interface NewsletterSubscribePayload {
   website?: string
 }
 
+export interface JoinWaitlistPayload {
+  email: string
+  name?: string
+  business_type?: string
+  source?: string
+  /** Honeypot — styled invisible; the server ignores it, bots cannot. */
+  website?: string
+}
+
 export function fetchPublicFeatures(): Promise<{ features: MarketingFeature[] }> {
   return api.get<{ features: MarketingFeature[] }>('/public/features')
 }
@@ -51,6 +60,16 @@ export function fetchPublicContentPage(key: string): Promise<ContentPage> {
 
 export function submitContact(payload: ContactMessagePayload): Promise<void> {
   return api.post<void>('/public/contact', payload)
+}
+
+/**
+ * Join the invite-only waitlist. Onboarding is closed: a platform operator
+ * reviews signups here and sends the invites, so this is the only public path
+ * into Dukavo. The server answers 202 identically whether the address was new
+ * or already listed.
+ */
+export function joinWaitlist(payload: JoinWaitlistPayload): Promise<void> {
+  return api.post<void>('/public/waitlist', payload)
 }
 
 export function subscribeNewsletter(payload: NewsletterSubscribePayload): Promise<void> {

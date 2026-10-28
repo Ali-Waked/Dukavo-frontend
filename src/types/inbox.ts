@@ -1,3 +1,4 @@
+import type { VoiceMessage } from './voice'
 import type {
   Channel,
   ConversationStatus,
@@ -5,6 +6,37 @@ import type {
   MessageType,
   WhatsappStatus,
 } from './enums'
+
+/** The provider's delivery lifecycle for an outbound message. */
+export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+
+export interface ReplyWindow {
+  is_open: boolean
+  expires_at: string | null
+  requires_template: boolean
+}
+
+export interface MessageMedia {
+  /** Authenticated conversation-scoped route; never a disk path or provider URL. */
+  url: string
+  filename: string | null
+  mime_type: string | null
+  size: number | null
+}
+
+export interface MessageTemplate {
+  name?: string | null
+  language?: string | null
+  language_code?: string | null
+  parameters?: string[] | null
+}
+
+export interface MessageLocation {
+  latitude?: number | null
+  longitude?: number | null
+  name?: string | null
+  address?: string | null
+}
 
 export interface ConversationMessage {
   id: number
@@ -14,14 +46,28 @@ export interface ConversationMessage {
   direction_label?: string
   type: MessageType
   body: string | null
+  /** Meta's provider id — not the caller's dedupe key. */
+  external_id?: string | null
+  is_internal: boolean
+  media?: MessageMedia | null
+  template?: MessageTemplate | null
+  location?: MessageLocation | null
   meta?: Record<string, unknown> | null
-  delivery_status?: string | null
+  delivery_status?: DeliveryStatus | null
   delivery_status_label?: string | null
   delivered_at?: string | null
   read_at?: string | null
+  failure_code?: string | null
+  failure_reason?: string | null
   delivery_error?: string | null
+  failed_at?: string | null
+  retry_of_id?: number | null
+  attempt_count?: number
+  can_retry?: boolean
   sent_at?: string | null
   author?: { id: number; name: string } | null
+  /** Present on inbound audio messages once the webhook has registered them. */
+  voice?: VoiceMessage | null
   created_at?: string | null
 }
 
@@ -34,26 +80,61 @@ export interface Conversation {
   channel_account?: string | null
   external_id?: string | null
   subject?: string | null
+  display_name?: string | null
+  phone?: string | null
   status: ConversationStatus
   status_label: string
-  customer?: { id: number; name: string; phone?: string | null } | null
+  unread_count: number
+  last_read_at?: string | null
+  last_inbound_at?: string | null
+  reply_window: ReplyWindow
+  customer?: {
+    id: number
+    name: string
+    email?: string | null
+    phone?: string | null
+  } | null
   assignee?: { id: number; name: string } | null
   last_message?: {
+    id?: number
     body: string | null
+    type?: MessageType
     direction: MessageDirection
+    is_internal?: boolean
+    delivery_status?: DeliveryStatus | null
     sent_at: string | null
   } | null
   messages_count?: number
   last_message_at?: string | null
+  closed_at?: string | null
   created_at?: string | null
   updated_at?: string | null
 }
 
-/** `GET /conversations/summary` — open, pending and unassigned counts. */
+/**
+ * One team-facing event on a conversation.
+ *
+ * This is the audit trail, not the customer-visible thread: it answers who
+ * assigned, changed status, sent or noted something. `old_values` and
+ * `new_values` are already allow-listed by the server, so they never contain
+ * message bodies or credentials.
+ */
+export interface ConversationEvent {
+  id: number
+  action: string
+  action_label: string
+  user?: { id: number; name: string; email?: string | null } | null
+  old_values?: Record<string, unknown> | null
+  new_values?: Record<string, unknown> | null
+  created_at: string | null
+}
+
+/** `GET /conversations/summary` — queue and unread counters. */
 export interface ConversationSummary {
   open: number
   pending: number
   unassigned: number
+  unread: number
 }
 
 export interface WhatsappAccount {

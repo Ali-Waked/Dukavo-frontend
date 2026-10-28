@@ -47,8 +47,23 @@ export interface ProfileSession {
  * deliberately absent because they are always sent.
  */
 export const NOTIFICATION_CHANNELS = {
-  email: ['order_updates', 'low_stock', 'new_messages', 'weekly_summary', 'product_news'],
-  whatsapp: ['order_updates', 'low_stock', 'new_messages'],
+  email: [
+    'order_updates',
+    'low_stock',
+    'new_messages',
+    'conversation_assignments',
+    'delivery_failures',
+    'approvals',
+    'weekly_summary',
+    'product_news',
+  ],
+  whatsapp: [
+    'order_updates',
+    'low_stock',
+    'new_messages',
+    'conversation_assignments',
+    'delivery_failures',
+  ],
 } as const
 
 export type NotificationChannel = keyof typeof NOTIFICATION_CHANNELS

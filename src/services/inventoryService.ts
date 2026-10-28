@@ -1,6 +1,13 @@
 import { api } from '@/lib/axiosClient'
 import type { Paginated } from '@/types/api'
 import type { Inventory, InventoryMovement } from '@/types/catalogue'
+import type {
+  InventoryIntelligenceDetailResponse,
+  InventoryIntelligenceParams,
+  InventoryIntelligenceResponse,
+  StockTransfer,
+  TransferStockPayload,
+} from '@/types/inventory'
 
 /**
  * Stock.
@@ -42,6 +49,7 @@ export interface AdjustStockPayload {
   product_variant_id: number
   quantity: number
   note?: string
+  idempotency_key?: string
 }
 
 export function adjustStock(payload: AdjustStockPayload): Promise<InventoryMovement> {
@@ -55,4 +63,48 @@ export interface ReceiveStockPayload extends AdjustStockPayload {
 
 export function receiveStock(payload: ReceiveStockPayload): Promise<InventoryMovement> {
   return api.post<InventoryMovement>('/tenant/inventory/receive', payload)
+}
+
+/* --------------------------------------------------------- intelligence */
+
+export function fetchInventoryIntelligence(
+  params: InventoryIntelligenceParams = {},
+): Promise<InventoryIntelligenceResponse> {
+  return api.get<InventoryIntelligenceResponse>('/tenant/inventory/intelligence', {
+    ...(params as Record<string, unknown>),
+  })
+}
+
+export function fetchInventoryIntelligenceDetail(
+  inventoryId: number,
+  params: InventoryIntelligenceParams = {},
+): Promise<InventoryIntelligenceDetailResponse> {
+  return api.get<InventoryIntelligenceDetailResponse>(
+    `/tenant/inventory/${inventoryId}/intelligence`,
+    { ...(params as Record<string, unknown>) },
+  )
+}
+
+export interface InventoryExport {
+  blob: Blob
+  filename: string | null
+}
+
+/** Download the currently filtered rows as a spreadsheet-safe CSV. */
+export async function exportInventoryIntelligence(
+  params: InventoryIntelligenceParams = {},
+): Promise<InventoryExport> {
+  const response = await api.raw.get<Blob>('/tenant/inventory/intelligence/export', {
+    params,
+    responseType: 'blob',
+  })
+
+  const disposition = String(response.headers['content-disposition'] ?? '')
+  const match = /filename="?([^";]+)"?/i.exec(disposition)
+
+  return { blob: response.data, filename: match?.[1] ?? null }
+}
+
+export function transferStock(payload: TransferStockPayload): Promise<StockTransfer> {
+  return api.post<StockTransfer>('/tenant/inventory/transfers', payload)
 }

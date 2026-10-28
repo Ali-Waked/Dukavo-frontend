@@ -4,6 +4,7 @@ import type {
   AppNotification,
   NotificationChannelAvailabilityMap,
   NotificationReadFilter,
+  NotificationSeverity,
 } from '@/types/notifications'
 
 /**
@@ -23,6 +24,8 @@ const PATHS = {
 
 export interface NotificationListParams {
   status?: NotificationReadFilter
+  category?: string
+  severity?: NotificationSeverity
   page?: number
   per_page?: number
 }
@@ -41,8 +44,16 @@ export function markNotificationRead(id: string): Promise<AppNotification> {
   return api.post<AppNotification>(`${PATHS.list}/${id}/read`)
 }
 
+export function markNotificationUnread(id: string): Promise<AppNotification> {
+  return api.post<AppNotification>(`${PATHS.list}/${id}/unread`)
+}
+
 export function markAllNotificationsRead(): Promise<{ updated: number }> {
   return api.post<{ updated: number }>(PATHS.readAll)
+}
+
+export function markNotificationUnread(id: string): Promise<AppNotification> {
+  return api.post<AppNotification>(`${PATHS.list}/${id}/unread`)
 }
 
 export function dismissNotification(id: string): Promise<void> {

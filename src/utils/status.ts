@@ -12,6 +12,7 @@ export function statusTone(status: string | null | undefined): BadgeTone {
   switch (status) {
     case 'active':
     case 'paid':
+    case 'converted':
     case 'delivered':
     case 'connected':
     case 'open':
@@ -21,6 +22,7 @@ export function statusTone(status: string | null | undefined): BadgeTone {
       return 'success'
 
     case 'pending':
+    case 'pending_confirmation':
     case 'processing':
     case 'confirmed':
     case 'partially_paid':

@@ -23,10 +23,11 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled'
 export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'refunded'
+export type CartStatus = 'draft' | 'pending_confirmation' | 'converted' | 'cancelled'
 export type ConversationStatus = 'open' | 'pending' | 'closed'
 export type WhatsappStatus = 'pending' | 'connected' | 'disconnected' | 'error'
 export type MessageDirection = 'inbound' | 'outbound'
-export type MessageType = 'text' | 'image' | 'audio' | 'file' | 'system'
+export type MessageType = 'text' | 'image' | 'audio' | 'file' | 'video' | 'template' | 'note' | 'system'
 export type InventoryMovementType =
   | 'initial'
   | 'purchase'
@@ -34,6 +35,8 @@ export type InventoryMovementType =
   | 'return_in'
   | 'return_out'
   | 'adjustment'
+  | 'transfer_in'
+  | 'transfer_out'
 export type RoleScope = 'platform' | 'tenant'
 export type Locale = 'en' | 'ar'
 export type ThemePreference = 'light' | 'dark' | 'system'
@@ -52,3 +55,53 @@ export type BillingInterval = 'monthly' | 'yearly' | 'one_time'
  * one is content, the other is the audience.
  */
 export type NewsletterArticleStatus = 'draft' | 'published'
+
+/**
+ * AI action governance.
+ *
+ * The classification is declared by the server-side executor, and the status
+ * follows a closed lifecycle. Both are mirrored here only for typing; the
+ * server remains authoritative over every transition.
+ */
+export type AiActionClassification =
+  | 'read_only'
+  | 'suggestion'
+  | 'draft_creation'
+  | 'reversible_change'
+  | 'high_risk'
+
+export type AiActionStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'approved'
+  | 'rejected'
+  | 'executed'
+  | 'failed'
+  | 'expired'
+
+/* ----------------------------------------------------- lost-sale recovery */
+export type RecoveryOpportunityStatus =
+  | 'eligible'
+  | 'contacted'
+  | 'snoozed'
+  | 'recovered'
+  | 'dismissed'
+  | 'expired'
+
+export type RecoveryReason =
+  | 'abandoned_cart'
+  | 'unconfirmed_quote'
+  | 'unanswered_inquiry'
+
+export type RecoveryEventType =
+  | 'detected'
+  | 'assigned'
+  | 'contacted'
+  | 'responded'
+  | 'snoozed'
+  | 'reopened'
+  | 'dismissed'
+  | 'recovered'
+  | 'attribution_released'
+  | 'expired'
+  | 'opted_out'

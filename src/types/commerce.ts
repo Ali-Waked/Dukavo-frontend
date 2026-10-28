@@ -57,6 +57,7 @@ export interface Order {
   order_number: string
   store_id: number | null
   customer_id: number | null
+  conversation_id?: number | null
   status: OrderStatus
   status_label: string
   payment_status: PaymentStatus

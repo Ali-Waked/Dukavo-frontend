@@ -45,6 +45,10 @@ export const PERMISSIONS = {
     reply: 'conversations.reply',
     assign: 'conversations.assign',
   },
+  recovery: {
+    view: 'recovery.view',
+    manage: 'recovery.manage',
+  },
   whatsapp: {
     view: 'whatsapp.view',
     manage: 'whatsapp.manage',
@@ -64,6 +68,10 @@ export const PERMISSIONS = {
   dashboard: {
     view: 'dashboard.view',
   },
+  profit: {
+    view: 'profit.view',
+    export: 'profit.export',
+  },
   audit: {
     view: 'audit.view',
   },
@@ -73,6 +81,7 @@ export const PERMISSIONS = {
   },
   ai: {
     use: 'ai.use',
+    approve: 'ai.approve',
   },
 } as const satisfies Record<string, Record<string, string>>
 
@@ -93,17 +102,19 @@ export const PERMISSION_MODULES: Array<{
   permissions: PermissionSlug[]
 }> = [
   { module: 'dashboard', labelKey: 'permission.module.dashboard', permissions: [PERMISSIONS.dashboard.view] },
+  { module: 'profit', labelKey: 'permission.module.profit', permissions: [PERMISSIONS.profit.view, PERMISSIONS.profit.export] },
   { module: 'products', labelKey: 'permission.module.products', permissions: [PERMISSIONS.products.view, PERMISSIONS.products.create, PERMISSIONS.products.update, PERMISSIONS.products.delete] },
   { module: 'categories', labelKey: 'permission.module.categories', permissions: [PERMISSIONS.categories.view, PERMISSIONS.categories.manage] },
   { module: 'inventory', labelKey: 'permission.module.inventory', permissions: [PERMISSIONS.inventory.view, PERMISSIONS.inventory.manage] },
   { module: 'orders', labelKey: 'permission.module.orders', permissions: [PERMISSIONS.orders.view, PERMISSIONS.orders.create, PERMISSIONS.orders.update, PERMISSIONS.orders.delete] },
   { module: 'customers', labelKey: 'permission.module.customers', permissions: [PERMISSIONS.customers.view, PERMISSIONS.customers.create, PERMISSIONS.customers.update, PERMISSIONS.customers.delete] },
   { module: 'conversations', labelKey: 'permission.module.conversations', permissions: [PERMISSIONS.conversations.view, PERMISSIONS.conversations.reply, PERMISSIONS.conversations.assign] },
+  { module: 'recovery', labelKey: 'permission.module.recovery', permissions: [PERMISSIONS.recovery.view, PERMISSIONS.recovery.manage] },
   { module: 'whatsapp', labelKey: 'permission.module.whatsapp', permissions: [PERMISSIONS.whatsapp.view, PERMISSIONS.whatsapp.manage] },
   { module: 'stores', labelKey: 'permission.module.stores', permissions: [PERMISSIONS.stores.view, PERMISSIONS.stores.manage] },
   { module: 'users', labelKey: 'permission.module.users', permissions: [PERMISSIONS.users.view, PERMISSIONS.users.manage] },
   { module: 'roles', labelKey: 'permission.module.roles', permissions: [PERMISSIONS.roles.view, PERMISSIONS.roles.manage] },
   { module: 'audit', labelKey: 'permission.module.audit', permissions: [PERMISSIONS.audit.view] },
   { module: 'settings', labelKey: 'permission.module.settings', permissions: [PERMISSIONS.settings.view, PERMISSIONS.settings.manage] },
-  { module: 'ai', labelKey: 'permission.module.ai', permissions: [PERMISSIONS.ai.use] },
+  { module: 'ai', labelKey: 'permission.module.ai', permissions: [PERMISSIONS.ai.use, PERMISSIONS.ai.approve] },
 ]
