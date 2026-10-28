@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Pencil, RefreshCw, Trash2 } from '@/components/icons'
+import { ArrowLeft, Pencil, Plus, RefreshCw, Trash2 } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
@@ -19,6 +19,19 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import MiniList, { type MiniListItem } from '@/components/charts/MiniList.vue'
 import { deleteCustomer, fetchCustomer, updateCustomer } from '@/services/customerService'
 import { fetchOrders } from '@/services/orderService'
+import {
+  createCustomerMemory,
+  deleteCustomerMemory,
+  fetchCustomerMemories,
+  fetchCustomerSummary,
+  fetchCustomerTimeline,
+  refreshCustomerSummary,
+  updateCustomerMemory,
+  updateCustomerSummary,
+  type CustomerMemory,
+  type CustomerSummary,
+  type CustomerTimelineItem,
+} from '@/services/customerCrmService'
 import type { Customer, CustomerAddress, Order } from '@/types/commerce'
 import type { CustomerStatus } from '@/types/enums'
 import { statusTone } from '@/utils/status'
@@ -54,6 +67,33 @@ const orders = ref<Order[]>([])
 const ordersLoading = ref(false)
 const ordersError = ref<string | null>(null)
 
+const timeline = ref<CustomerTimelineItem[]>([])
+const timelineLoading = ref(false)
+const timelineError = ref<string | null>(null)
+
+const memories = ref<CustomerMemory[]>([])
+const memoriesLoading = ref(false)
+const memoriesError = ref<string | null>(null)
+
+const summary = ref<CustomerSummary | null>(null)
+const summaryLoading = ref(false)
+const summaryRefreshing = ref(false)
+const summaryEditing = ref(false)
+const summaryForm = ref('')
+const summarySaving = ref(false)
+
+const memoryFormOpen = ref(false)
+const memoryEditing = ref<CustomerMemory | null>(null)
+const memoryKey = ref('')
+const memoryValue = ref('')
+const memoryCategory = ref('general')
+const memorySource = ref('manual')
+const memoryConfidence = ref<string>('')
+const memorySaving = ref(false)
+const memoryError = ref<string | null>(null)
+const memoryPendingDelete = ref<CustomerMemory | null>(null)
+const memoryDeleting = ref(false)
+
 const formOpen = ref(false)
 const formName = ref('')
 const formEmail = ref('')
@@ -71,6 +111,7 @@ const deleting = ref(false)
 const customerId = computed(() => Number(route.params.id))
 const canUpdate = computed(() => auth.can('customers.update'))
 const canDelete = computed(() => auth.can('customers.delete'))
+const canUseAi = computed(() => auth.can('ai.use'))
 const canViewOrders = computed(() => auth.can('orders.view'))
 const currency = computed(() => auth.activeTenant?.currency ?? 'USD')
 
@@ -160,6 +201,169 @@ async function loadOrders(): Promise<void> {
       caught instanceof ApiError && caught.isNetworkError ? t('auth.networkError') : t('state.loadFailed')
   } finally {
     ordersLoading.value = false
+  }
+}
+
+async function loadTimeline(): Promise<void> {
+  const id = customerId.value
+  if (!Number.isFinite(id)) return
+  timelineLoading.value = true
+  timelineError.value = null
+  try {
+    const res = await fetchCustomerTimeline(id)
+    timeline.value = res.items || []
+  } catch (caught) {
+    timeline.value = []
+    timelineError.value =
+      caught instanceof ApiError && caught.isNetworkError ? t('auth.networkError') : t('state.loadFailed')
+  } finally {
+    timelineLoading.value = false
+  }
+}
+
+async function loadMemories(): Promise<void> {
+  const id = customerId.value
+  if (!Number.isFinite(id)) return
+  memoriesLoading.value = true
+  memoriesError.value = null
+  try {
+    const res = await fetchCustomerMemories(id)
+    memories.value = Array.isArray(res) ? res : (res as any).data || []
+  } catch (caught) {
+    memories.value = []
+    memoriesError.value =
+      caught instanceof ApiError && caught.isNetworkError ? t('auth.networkError') : t('state.loadFailed')
+  } finally {
+    memoriesLoading.value = false
+  }
+}
+
+async function loadSummary(): Promise<void> {
+  const id = customerId.value
+  if (!Number.isFinite(id)) return
+  summaryLoading.value = true
+  try {
+    summary.value = await fetchCustomerSummary(id)
+  } catch (caught) {
+    summary.value = null
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
+async function doRefreshSummary(): Promise<void> {
+  const id = customerId.value
+  if (!Number.isFinite(id)) return
+  summaryRefreshing.value = true
+  try {
+    summary.value = await refreshCustomerSummary(id)
+    toast.success(t('customers.summaryRefreshed'))
+  } catch (caught) {
+    toast.error(caught instanceof ApiError && caught.message ? caught.message : t('error.title'))
+  } finally {
+    summaryRefreshing.value = false
+  }
+}
+
+function startEditSummary(): void {
+  summaryForm.value = summary.value?.summary || ''
+  summaryEditing.value = true
+}
+
+function cancelEditSummary(): void {
+  summaryEditing.value = false
+}
+
+async function saveSummary(): Promise<void> {
+  const id = customerId.value
+  if (!Number.isFinite(id)) return
+  summarySaving.value = true
+  try {
+    summary.value = await updateCustomerSummary(id, { summary: summaryForm.value })
+    summaryEditing.value = false
+    toast.success(t('customers.summaryUpdated'))
+  } catch (caught) {
+    toast.error(caught instanceof ApiError && caught.message ? caught.message : t('error.title'))
+  } finally {
+    summarySaving.value = false
+  }
+}
+
+function openMemoryCreate(): void {
+  memoryEditing.value = null
+  memoryKey.value = ''
+  memoryValue.value = ''
+  memoryCategory.value = 'general'
+  memorySource.value = 'manual'
+  memoryConfidence.value = ''
+  memoryError.value = null
+  memoryFormOpen.value = true
+}
+
+function openMemoryEdit(mem: CustomerMemory): void {
+  memoryEditing.value = mem
+  memoryKey.value = mem.key
+  memoryValue.value = mem.value
+  memoryCategory.value = mem.category || 'general'
+  memorySource.value = mem.source || 'manual'
+  memoryConfidence.value = mem.confidence !== null && mem.confidence !== undefined ? String(mem.confidence) : ''
+  memoryError.value = null
+  memoryFormOpen.value = true
+}
+
+function closeMemoryForm(): void {
+  memoryFormOpen.value = false
+}
+
+async function saveMemory(): Promise<void> {
+  const id = customerId.value
+  if (!Number.isFinite(id)) return
+  if (!memoryKey.value.trim() || !memoryValue.value.trim()) {
+    memoryError.value = t('validation.required')
+    return
+  }
+  memorySaving.value = true
+  memoryError.value = null
+  try {
+    const payload: any = {
+      key: memoryKey.value.trim(),
+      value: memoryValue.value.trim(),
+      category: memoryCategory.value,
+      source: memorySource.value,
+    }
+    if (memoryConfidence.value !== '') {
+      payload.confidence = Number(memoryConfidence.value)
+    }
+    if (memoryEditing.value) {
+      await updateCustomerMemory(id, memoryEditing.value.id, payload)
+      toast.success(t('customers.memoryUpdated'))
+    } else {
+      await createCustomerMemory(id, payload)
+      toast.success(t('customers.memoryCreated'))
+    }
+    closeMemoryForm()
+    await loadMemories()
+  } catch (caught) {
+    memoryError.value = caught instanceof ApiError && caught.message ? caught.message : t('error.title')
+  } finally {
+    memorySaving.value = false
+  }
+}
+
+async function removeMemory(): Promise<void> {
+  const id = customerId.value
+  const mem = memoryPendingDelete.value
+  if (!Number.isFinite(id) || !mem) return
+  memoryDeleting.value = true
+  try {
+    await deleteCustomerMemory(id, mem.id)
+    toast.success(t('customers.memoryDeleted'))
+    await loadMemories()
+    memoryPendingDelete.value = null
+  } catch (caught) {
+    toast.error(caught instanceof ApiError && caught.message ? caught.message : t('error.title'))
+  } finally {
+    memoryDeleting.value = false
   }
 }
 
@@ -271,13 +475,22 @@ async function confirmDelete(): Promise<void> {
 watch(customerId, () => {
   customer.value = null
   orders.value = []
+  timeline.value = []
+  memories.value = []
+  summary.value = null
   void load()
   void loadOrders()
+  void loadTimeline()
+  void loadMemories()
+  void loadSummary()
 })
 
 onMounted(() => {
   void load()
   void loadOrders()
+  void loadTimeline()
+  void loadMemories()
+  void loadSummary()
 })
 </script>
 
@@ -438,6 +651,111 @@ onMounted(() => {
           </div>
         </section>
       </div>
+
+      <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <!-- AI Summary -->
+        <section class="surface p-5" :aria-label="t('customers.aiSummary')">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-h4 font-semibold text-ink">{{ t('customers.aiSummary') }}</h2>
+            <div class="flex flex-wrap items-center gap-2">
+              <BaseButton v-if="canUseAi" size="sm" variant="secondary" :icon="RefreshCw" :loading="summaryRefreshing" @click="doRefreshSummary">
+                {{ t('action.refresh') }}
+              </BaseButton>
+              <BaseButton v-if="canUpdate && !summaryEditing" size="sm" variant="secondary" :icon="Pencil" @click="startEditSummary">
+                {{ t('action.edit') }}
+              </BaseButton>
+            </div>
+          </div>
+          <div class="mt-4">
+            <BaseSkeleton v-if="summaryLoading" :rows="4" height="h-4" />
+            <template v-else>
+              <div v-if="summaryEditing">
+                <BaseTextarea v-model="summaryForm" :rows="6" />
+                <div class="mt-3 flex items-center gap-2">
+                  <BaseButton size="sm" :loading="summarySaving" @click="saveSummary">{{ t('action.save') }}</BaseButton>
+                  <BaseButton size="sm" variant="secondary" @click="cancelEditSummary">{{ t('action.cancel') }}</BaseButton>
+                </div>
+              </div>
+              <div v-else>
+                <p class="whitespace-pre-wrap text-sm text-ink">{{ summary?.summary || t('customers.noSummary') }}</p>
+                <div v-if="summary?.highlights?.length" class="mt-3">
+                  <p class="text-caption font-semibold uppercase tracking-wide text-subtle">{{ t('customers.highlights') }}</p>
+                  <ul class="mt-2 list-disc space-y-1 ps-5 text-sm text-muted">
+                    <li v-for="(h, idx) in summary.highlights" :key="idx">{{ h }}</li>
+                  </ul>
+                </div>
+                <div v-if="summary?.risks?.length" class="mt-3">
+                  <p class="text-caption font-semibold uppercase tracking-wide text-subtle">{{ t('customers.risks') }}</p>
+                  <ul class="mt-2 list-disc space-y-1 ps-5 text-sm text-muted">
+                    <li v-for="(r, idx) in summary.risks" :key="idx">{{ r }}</li>
+                  </ul>
+                </div>
+                <div v-if="summary?.opportunities?.length" class="mt-3">
+                  <p class="text-caption font-semibold uppercase tracking-wide text-subtle">{{ t('customers.opportunities') }}</p>
+                  <ul class="mt-2 list-disc space-y-1 ps-5 text-sm text-muted">
+                    <li v-for="(o, idx) in summary.opportunities" :key="idx">{{ o }}</li>
+                  </ul>
+                </div>
+                <p v-if="summary?.model" class="mt-3 text-xs text-subtle">{{ t('customers.summaryDraftNote') }}</p>
+                <p v-if="summary?.is_edited" class="mt-1 text-xs text-subtle">{{ t('customers.editedByStaff') }}</p>
+              </div>
+            </template>
+          </div>
+        </section>
+
+        <!-- Verified memories / preferences -->
+        <section class="surface p-5" :aria-label="t('customers.preferences')">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-h4 font-semibold text-ink">{{ t('customers.preferences') }}</h2>
+            <BaseButton v-if="canUpdate" size="sm" variant="secondary" :icon="Plus" @click="openMemoryCreate">
+              {{ t('customers.addMemory') }}
+            </BaseButton>
+          </div>
+          <div class="mt-4">
+            <BaseSkeleton v-if="memoriesLoading" :rows="4" height="h-4" />
+            <template v-else>
+              <ul v-if="memories.length" class="space-y-2">
+                <li v-for="mem in memories" :key="mem.id" class="flex flex-col gap-2 rounded-lg border border-subtle p-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-sm font-semibold text-ink">{{ mem.key }}</p>
+                      <BaseBadge>{{ mem.category }}</BaseBadge>
+                      <BaseBadge v-if="mem.source">{{ mem.source }}</BaseBadge>
+                    </div>
+                    <p class="mt-1 whitespace-pre-wrap text-sm text-muted">{{ mem.value }}</p>
+                    <p v-if="mem.confidence !== null && mem.confidence !== undefined" class="mt-1 text-xs text-subtle">{{ t('customers.confidence') }}: {{ mem.confidence }}%</p>
+                  </div>
+                  <div v-if="canUpdate || canDelete" class="flex items-center gap-2">
+                    <BaseButton v-if="canUpdate" size="sm" variant="secondary" :icon="Pencil" @click="openMemoryEdit(mem)">{{ t('action.edit') }}</BaseButton>
+                    <BaseButton v-if="canDelete" size="sm" variant="danger" :icon="Trash2" @click="memoryPendingDelete = mem">{{ t('action.delete') }}</BaseButton>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="text-sm text-subtle">{{ t('customers.noMemories') }}</p>
+            </template>
+          </div>
+        </section>
+      </div>
+
+      <!-- Timeline -->
+      <section class="surface p-5" :aria-label="t('customers.timeline')">
+        <h2 class="text-h4 font-semibold text-ink">{{ t('customers.timeline') }}</h2>
+        <div class="mt-4">
+          <BaseSkeleton v-if="timelineLoading" :rows="5" height="h-4" />
+          <template v-else>
+            <ul v-if="timeline.length" class="space-y-3">
+              <li v-for="item in timeline" :key="item.id" class="flex flex-col gap-1 rounded-lg border border-subtle p-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p class="text-sm font-semibold capitalize text-ink">{{ item.type }}</p>
+                  <p class="mt-1 text-sm text-muted">{{ item.data?.order_number || item.data?.subject || item.data?.channel || '—' }}</p>
+                </div>
+                <p class="text-xs text-subtle">{{ item.timestamp ? formatRelative(item.timestamp) : '—' }}</p>
+              </li>
+            </ul>
+            <p v-else class="text-sm text-subtle">{{ t('customers.noTimeline') }}</p>
+          </template>
+        </div>
+      </section>
     </template>
 
     <!-- Edit -->
@@ -495,6 +813,51 @@ onMounted(() => {
         </BaseButton>
         <BaseButton :loading="saving" @click="submitForm">
           {{ t('action.saveChanges') }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Memory -->
+    <BaseModal
+      :open="memoryFormOpen"
+      :title="memoryEditing ? t('customers.editMemory') : t('customers.addMemory')"
+      @close="closeMemoryForm"
+    >
+      <div class="space-y-4">
+        <BaseAlert v-if="memoryError" tone="danger" dismissible @dismiss="memoryError = null">
+          {{ memoryError }}
+        </BaseAlert>
+        <BaseInput v-model="memoryKey" :label="t('customers.memoryKey')" required />
+        <BaseTextarea v-model="memoryValue" :label="t('customers.memoryValue')" :rows="4" required />
+        <div class="grid gap-4 sm:grid-cols-2">
+          <BaseInput v-model="memoryCategory" :label="t('customers.memoryCategory')" />
+          <BaseInput v-model="memorySource" :label="t('customers.memorySource')" />
+        </div>
+        <BaseInput v-model="memoryConfidence" type="number" :label="t('customers.memoryConfidence')" />
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" :disabled="memorySaving" @click="closeMemoryForm">{{ t('action.cancel') }}</BaseButton>
+        <BaseButton :loading="memorySaving" @click="saveMemory">{{ t('action.save') }}</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Memory delete confirmation -->
+    <BaseModal
+      :open="Boolean(memoryPendingDelete)"
+      :title="t('customers.deleteMemoryTitle')"
+      size="sm"
+      @close="memoryPendingDelete = null"
+    >
+      <p class="text-sm text-muted">
+        {{ t('customers.deleteMemoryBody', { key: memoryPendingDelete?.key ?? '' }) }}
+      </p>
+
+      <template #footer>
+        <BaseButton variant="secondary" :disabled="memoryDeleting" @click="memoryPendingDelete = null">
+          {{ t('action.cancel') }}
+        </BaseButton>
+        <BaseButton variant="danger" :loading="memoryDeleting" @click="removeMemory">
+          {{ t('action.delete') }}
         </BaseButton>
       </template>
     </BaseModal>

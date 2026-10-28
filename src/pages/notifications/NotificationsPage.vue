@@ -10,7 +10,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import NotificationItem from '@/components/notifications/NotificationItem.vue'
 import { useI18n } from '@/i18n'
 import { useNotificationStore } from '@/stores/notificationStore'
-import type { NotificationReadFilter } from '@/types/notifications'
+import type { NotificationReadFilter, NotificationSeverity } from '@/types/notifications'
 
 /**
  * The notification centre.
@@ -24,6 +24,8 @@ const { t } = useI18n()
 const notifications = useNotificationStore()
 
 const status = ref<NotificationReadFilter>('all')
+const category = ref('all')
+const severity = ref<'all' | NotificationSeverity>('all')
 const page = ref(1)
 
 const statusOptions = [
@@ -32,13 +34,35 @@ const statusOptions = [
   { value: 'read', label: t('notifications.center.filter.read') },
 ]
 
+const categoryOptions = [
+  { value: 'all', label: t('notifications.center.category.all') },
+  { value: 'orders', label: t('notifications.center.category.orders') },
+  { value: 'inventory', label: t('notifications.center.category.inventory') },
+  { value: 'messages', label: t('notifications.center.category.messages') },
+  { value: 'automation', label: t('notifications.center.category.automation') },
+  { value: 'leads', label: t('notifications.center.category.leads') },
+  { value: 'tenants', label: t('notifications.center.category.tenants') },
+  { value: 'system', label: t('notifications.center.category.system') },
+]
+
+const severityOptions = [
+  { value: 'all', label: t('notifications.center.severity.all') },
+  { value: 'info', label: t('notifications.center.severity.info') },
+  { value: 'success', label: t('notifications.center.severity.success') },
+  { value: 'warning', label: t('notifications.center.severity.warning') },
+  { value: 'critical', label: t('notifications.center.severity.critical') },
+]
+
 function reload(): void {
-  void notifications.load(status.value, page.value)
+  void notifications.load(status.value, page.value, {
+    category: category.value === 'all' ? null : category.value,
+    severity: severity.value === 'all' ? null : severity.value,
+  })
 }
 
 onMounted(reload)
 
-watch(status, () => {
+watch([status, category, severity], () => {
   page.value = 1
   reload()
 })
@@ -69,13 +93,29 @@ async function markAllRead(): Promise<void> {
       </template>
     </PageHeader>
 
-    <div class="surface flex flex-wrap items-center justify-between gap-3 p-4">
-      <BaseSelect
-        v-model="status"
-        class="w-48"
-        :label="t('notifications.center.statusLabel')"
-        :options="statusOptions"
-      />
+    <div class="surface flex flex-wrap items-end justify-between gap-3 p-4">
+      <div class="flex flex-wrap items-end gap-3">
+        <BaseSelect
+          v-model="status"
+          class="w-44"
+          :label="t('notifications.center.statusLabel')"
+          :options="statusOptions"
+        />
+
+        <BaseSelect
+          v-model="category"
+          class="w-44"
+          :label="t('notifications.center.categoryLabel')"
+          :options="categoryOptions"
+        />
+
+        <BaseSelect
+          v-model="severity"
+          class="w-44"
+          :label="t('notifications.center.severityLabel')"
+          :options="severityOptions"
+        />
+      </div>
 
       <span v-if="notifications.meta" class="text-caption text-subtle">
         {{ t('notifications.center.total', { count: notifications.meta.total }) }}
