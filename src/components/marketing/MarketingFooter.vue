@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { CheckCircle2 } from '@/components/icons'
 import { useI18n } from '@/i18n'
+import { useAuth } from '@/composables/useAuth'
+import { useDashboardRoute } from '@/composables/useDashboardRoute'
 import { ApiError } from '@/lib/axiosClient'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -25,6 +27,8 @@ withDefaults(defineProps<{ showNewsletter?: boolean }>(), { showNewsletter: true
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const { t } = useI18n()
+const { isAuthenticated } = useAuth()
+const dashboardRoute = useDashboardRoute()
 
 const email = ref('')
 const website = ref('')
@@ -123,7 +127,14 @@ async function submit(): Promise<void> {
             <li><RouterLink to="/features" class="transition hover:text-ink">{{ t('marketing.nav.features') }}</RouterLink></li>
             <li><RouterLink to="/pricing" class="transition hover:text-ink">{{ t('marketing.nav.pricing') }}</RouterLink></li>
             <li><RouterLink to="/how-it-works" class="transition hover:text-ink">{{ t('marketing.nav.howItWorks') }}</RouterLink></li>
-            <li><RouterLink to="/login" class="transition hover:text-ink">{{ t('marketing.nav.login') }}</RouterLink></li>
+            <li>
+              <RouterLink
+                :to="isAuthenticated ? dashboardRoute : '/login'"
+                class="transition hover:text-ink"
+              >
+                {{ isAuthenticated ? t('nav.dashboard') : t('marketing.nav.login') }}
+              </RouterLink>
+            </li>
           </ul>
         </div>
 
