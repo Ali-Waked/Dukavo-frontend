@@ -133,6 +133,7 @@ export interface NewsletterSummary {
   slug: string
   excerpt: string | null
   cover_image_url: string | null
+  reading_minutes: number
   status: NewsletterArticleStatus
   status_label: string
   published_at: string | null

@@ -21,6 +21,7 @@ import DashboardMockup from '@/components/marketing/home/DashboardMockup.vue'
 import HomeStory from '@/components/marketing/home/HomeStory.vue'
 import HomeCompare from '@/components/marketing/home/HomeCompare.vue'
 import HomeFeatures from '@/components/marketing/home/HomeFeatures.vue'
+import HomeAi from '@/components/marketing/home/HomeAi.vue'
 import HomePricing from '@/components/marketing/home/HomePricing.vue'
 import HomeBlog from '@/components/marketing/home/HomeBlog.vue'
 import HomeFaq from '@/components/marketing/home/HomeFaq.vue'
@@ -66,7 +67,24 @@ const TICKS = [
 ] as const
 
 onMounted(() => {
-  setSeo({ description: t('marketing.home.heroSubtitle') })
+  setSeo({
+    title: 'Dukavo',
+    description: t('marketing.home.heroSubtitle'),
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'Dukavo',
+        logo: `${window.location.origin}/favicon.png`,
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Dukavo',
+        url: `${window.location.origin}/`,
+      },
+    ],
+  })
   AOS.init({
     duration: 600,
     easing: 'ease-out-quart',
@@ -190,6 +208,9 @@ onMounted(() => {
 
     <!-- Feature bento -->
     <HomeFeatures />
+
+    <!-- AI with human approval -->
+    <HomeAi />
 
     <!-- Audience -->
     <section class="py-16 md:py-24">

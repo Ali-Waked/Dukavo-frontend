@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { CheckCircle2, UserPlus } from '@/components/icons'
+import { CheckCircle2, Clock, MailCheck, ShieldCheck } from '@/components/icons'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
-import { useI18n } from '@/i18n'
+import { useI18n, type MessageKey } from '@/i18n'
 import { useSeo } from '@/composables/useSeo'
 import { ApiError } from '@/lib/axiosClient'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
@@ -19,9 +19,7 @@ import { joinWaitlist } from '@/services/marketingService'
  * Onboarding is invite-only: a platform operator reviews signups and sends
  * invitations, so this page never implies self-serve registration. The answer
  * is deliberately sparse — 202 means "we have it" whether the address was new
- * or already listed, so nothing here distinguishes the two. The form carries
- * the `website` honeypot the server reads, and rate-limit replies are shown
- * as-is rather than mapped to scary copy.
+ * or already listed, so nothing here distinguishes the two.
  */
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -29,6 +27,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const { t } = useI18n()
 const route = useRoute()
 const { set: setSeo } = useSeo()
+
+const STEPS: { titleKey: MessageKey; bodyKey: MessageKey }[] = [
+  { titleKey: 'waitlist.nextStep1Title', bodyKey: 'waitlist.nextStep1Body' },
+  { titleKey: 'waitlist.nextStep2Title', bodyKey: 'waitlist.nextStep2Body' },
+  { titleKey: 'waitlist.nextStep3Title', bodyKey: 'waitlist.nextStep3Body' },
+]
+
+const TRUST = [
+  'waitlist.trustInvite',
+  'waitlist.trustData',
+  'waitlist.trustNoSpam',
+] as const
 
 /**
  * When a visitor arrives from a specific plan the plan slug travels in the
@@ -51,7 +61,11 @@ const submitting = ref(false)
 const joined = ref(false)
 
 onMounted(() => {
-  setSeo({ title: t('waitlist.title'), description: t('waitlist.subtitle') })
+  setSeo({
+    title: t('waitlist.title'),
+    description: t('waitlist.subtitle'),
+    type: 'website',
+  })
   AOS.init({
     duration: 600,
     easing: 'ease-out-quart',
@@ -105,40 +119,74 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <section class="py-16 md:py-24">
-    <div class="mx-auto max-w-3xl px-4 md:px-6">
-      <Transition name="page" mode="out-in">
-        <!-- Success -->
-        <div
-          v-if="joined"
-          key="success"
-          class="surface mx-auto max-w-xl p-8 text-center"
-          data-aos="fade-up"
-        >
-          <span class="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-success-soft text-success-ink">
-            <CheckCircle2 class="size-7" aria-hidden="true" />
-          </span>
-          <h1 class="text-h1 font-semibold tracking-tight text-ink">{{ t('waitlist.successTitle') }}</h1>
-          <p class="mx-auto mt-2 max-w-sm text-body text-muted">{{ t('waitlist.successBody') }}</p>
-          <div class="mt-6">
-            <BaseButton variant="secondary" @click="joined = false">
-              {{ t('waitlist.again') }}
-            </BaseButton>
-          </div>
+  <section class="relative overflow-hidden py-16 md:py-24">
+    <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+      <div class="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-brand-100/50 to-transparent dark:from-brand-700/20" />
+      <div class="absolute -end-24 top-24 size-72 rounded-full bg-accent-400/5 blur-3xl" />
+    </div>
+
+    <div class="mx-auto grid max-w-6xl gap-10 px-4 md:px-6 lg:grid-cols-[1.05fr_1fr] lg:items-start lg:gap-16">
+      <div data-aos="fade-up">
+        <span class="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-caption font-medium text-muted shadow-xs">
+          <span class="size-1.5 rounded-full bg-brand-700" aria-hidden="true" />
+          {{ t('waitlist.eyebrow') }}
+        </span>
+
+        <h1 class="mt-5 text-display font-semibold tracking-tight text-ink">{{ t('waitlist.title') }}</h1>
+        <p class="mt-4 max-w-xl text-lead text-muted">{{ t('waitlist.subtitle') }}</p>
+
+        <ul class="mt-7 space-y-3">
+          <li v-for="key in TRUST" :key="key" class="flex items-start gap-2.5 text-body text-ink">
+            <CheckCircle2 class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+            {{ t(key) }}
+          </li>
+        </ul>
+
+        <div class="surface mt-8 p-5">
+          <p class="text-caption font-semibold uppercase tracking-[0.14em] text-subtle">
+            {{ t('waitlist.nextTitle') }}
+          </p>
+          <ol class="mt-4 space-y-4">
+            <li v-for="(step, index) in STEPS" :key="step.titleKey" class="flex gap-3">
+              <span class="metric grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-small font-semibold text-brand-ink">
+                {{ index + 1 }}
+              </span>
+              <div>
+                <p class="text-small font-semibold text-ink">{{ t(step.titleKey) }}</p>
+                <p class="mt-0.5 text-small text-muted">{{ t(step.bodyKey) }}</p>
+              </div>
+            </li>
+          </ol>
         </div>
+      </div>
 
-        <!-- Form -->
-        <div v-else key="form">
-          <div class="text-center" data-aos="fade-up">
-            <span class="mx-auto mb-4 grid size-12 place-items-center rounded-xl bg-surface-2 text-muted ring-1 ring-line">
-              <UserPlus class="size-6" aria-hidden="true" />
+      <div class="lg:sticky lg:top-28" data-aos="fade-up" data-aos-delay="80">
+        <Transition name="page" mode="out-in">
+          <div v-if="joined" key="success" class="surface p-7 text-center md:p-8">
+            <span class="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-success-soft text-success-ink">
+              <MailCheck class="size-7" aria-hidden="true" />
             </span>
-            <h1 class="text-h1 font-semibold tracking-tight text-ink">{{ t('waitlist.title') }}</h1>
-            <p class="mt-3 text-muted">{{ t('waitlist.subtitle') }}</p>
+            <h2 class="text-h1 font-semibold tracking-tight text-ink">{{ t('waitlist.successTitle') }}</h2>
+            <p class="mx-auto mt-2 max-w-sm text-body text-muted">{{ t('waitlist.successBody') }}</p>
+            <div class="mt-6">
+              <BaseButton variant="secondary" @click="joined = false">
+                {{ t('waitlist.again') }}
+              </BaseButton>
+            </div>
           </div>
 
-          <div class="surface mt-10 p-6 md:p-8" data-aos="fade-up" data-aos-delay="100">
-            <form class="space-y-4" @submit.prevent="submit">
+          <div v-else key="form" class="surface p-6 md:p-8">
+            <div class="flex items-center gap-3 border-b border-line pb-5">
+              <span class="grid size-10 place-items-center rounded-xl bg-brand-soft text-brand-ink ring-1 ring-brand-ring">
+                <Clock class="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 class="text-h3 font-semibold text-ink">{{ t('waitlist.formTitle') }}</h2>
+                <p class="text-small text-muted">{{ t('waitlist.formBody') }}</p>
+              </div>
+            </div>
+
+            <form class="mt-5 space-y-4" @submit.prevent="submit">
               <BaseAlert v-if="formError" tone="danger" dismissible @dismiss="formError = null">
                 {{ formError }}
               </BaseAlert>
@@ -154,31 +202,34 @@ async function submit(): Promise<void> {
                 required
               />
 
-              <div class="grid gap-4 sm:grid-cols-2">
-                <BaseInput
-                  v-model="name"
-                  :label="t('common.name')"
-                  :hint="t('common.optional')"
-                  autocomplete="name"
-                />
+              <BaseInput
+                v-model="name"
+                :label="t('common.name')"
+                :hint="t('common.optional')"
+                autocomplete="name"
+              />
 
-                <BaseInput
-                  v-model="businessType"
-                  :label="t('waitlist.businessType')"
-                  :hint="t('waitlist.businessTypeHint')"
-                  :placeholder="t('waitlist.businessTypePlaceholder')"
-                />
-              </div>
+              <BaseInput
+                v-model="businessType"
+                :label="t('waitlist.businessType')"
+                :hint="t('waitlist.businessTypeHint')"
+                :placeholder="t('waitlist.businessTypePlaceholder')"
+              />
 
-              <div class="pt-2">
+              <div class="pt-1">
                 <BaseButton type="submit" :loading="submitting" block size="lg">
                   {{ t('waitlist.submit') }}
                 </BaseButton>
               </div>
+
+              <p class="flex items-start gap-2 text-caption text-subtle">
+                <ShieldCheck class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                {{ t('waitlist.privacyNote') }}
+              </p>
             </form>
           </div>
-        </div>
-      </Transition>
+        </Transition>
+      </div>
     </div>
   </section>
 </template>

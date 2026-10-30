@@ -1,41 +1,49 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { CheckCircle2, CircleMinus, LoaderCircle, RefreshCw, Sparkles } from '@/components/icons'
+import { computed, onMounted, ref } from 'vue'
+import { CircleMinus, LoaderCircle, RefreshCw } from '@/components/icons'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import { useI18n } from '@/i18n'
+import { useSeo } from '@/composables/useSeo'
 import { ApiError } from '@/lib/axiosClient'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
-import { BILLING_INTERVAL } from '@/constants/statuses'
-import { fetchPublicPricing } from '@/services/marketingService'
-import type { PricingPlan } from '@/types/marketing'
-import { formatCurrency } from '@/utils/format'
+import PageHero from '@/components/marketing/PageHero.vue'
+import SectionHeading from '@/components/marketing/SectionHeading.vue'
+import PricingCard from '@/components/marketing/PricingCard.vue'
+import FaqAccordion from '@/components/marketing/FaqAccordion.vue'
+import CtaSection from '@/components/marketing/CtaSection.vue'
+import { fetchPublicFaq, fetchPublicPricing } from '@/services/marketingService'
+import type { FaqEntry, PricingPlan } from '@/types/marketing'
 
 /**
- * Public pricing page.
+ * Public pricing.
  *
- * The plans come from the platform editor, so this page is pure presentation:
- * it renders exactly what the admin published, ordered by sort order, with a
- * nullable price rendered as the "coming soon" state rather than as zero.
- *
- * Signup is invite-only, so the page offers no self-serve CTA: a plan that is
- * not yet purchasable is annotated as such instead of routing to the waitlist
- * or registration, both of which have been removed.
+ * Plans come from the platform editor, so the page only presents what has been
+ * published. A null price is a real state ("not decided yet"), never zero, and
+ * onboarding is invite-only — every plan routes to the waitlist carrying its
+ * slug instead of implying a checkout that does not exist.
  */
 
 const { t } = useI18n()
+const { set: setSeo } = useSeo()
 
 const plans = ref<PricingPlan[]>([])
+const faq = ref<FaqEntry[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-const sorted = computed(() => plans.value.filter((p) => p.active).sort((a, b) => a.sort_order - b.sort_order))
+const sorted = computed(() =>
+  plans.value.filter((plan) => plan.active).sort((a, b) => a.sort_order - b.sort_order),
+)
 
-onMounted(async () => {
-  AOS.init({ duration: 600, easing: 'ease-out-quart', once: false, offset: 120 })
-  await load()
+const pricingFaq = computed(() => {
+  const relevant = faq.value.filter((entry) => {
+    const category = entry.category?.toLowerCase()
+    return !category || category === 'pricing' || category === 'plans' || category === 'general'
+  })
+  return (relevant.length > 0 ? relevant : faq.value).slice(0, 6)
 })
 
 function errorMessage(caught: unknown): string {
@@ -54,29 +62,46 @@ async function load(): Promise<void> {
   }
 }
 
-function periodSuffix(plan: PricingPlan): string {
-  if (plan.billing_interval === 'one_time') return t('billing.once')
-  if (plan.billing_interval === 'yearly') return t('billing.perYear')
-  return t('billing.perMonth')
-}
+onMounted(async () => {
+  setSeo({
+    title: t('pricing.title'),
+    description: t('pricing.heroBody'),
+    type: 'website',
+  })
+  AOS.init({ duration: 600, easing: 'ease-out-quart', once: true, offset: 120 })
+  await Promise.all([
+    load(),
+    fetchPublicFaq()
+      .then((entries) => {
+        faq.value = entries
+      })
+      .catch(() => {
+        faq.value = []
+      }),
+  ])
+})
 </script>
 
 <template>
-  <section class="py-16 md:py-24">
-    <div class="mx-auto max-w-7xl px-4 md:px-6">
-      <div class="mx-auto max-w-xl text-center" data-aos="fade-up">
-        <h1 class="text-h1 font-semibold tracking-tight text-ink">{{ t('pricing.title') }}</h1>
-        <p class="mt-3 text-muted">{{ t('pricing.subtitle') }}</p>
-      </div>
+  <div>
+    <PageHero
+      :eyebrow="t('pricing.eyebrow')"
+      :title="t('pricing.title')"
+      :description="t('pricing.heroBody')"
+    />
 
-      <div class="mt-12">
-        <!-- Loading -->
-        <div v-if="loading" class="mx-auto flex max-w-md items-center justify-center gap-2 py-16 text-muted">
+    <section class="py-16 md:py-24">
+      <div class="mx-auto max-w-7xl px-4 md:px-6">
+        <div class="mx-auto mb-10 flex max-w-3xl items-start gap-3 rounded-xl border border-brand-soft-border bg-brand-soft p-4 text-small text-brand-ink">
+          <span class="mt-0.5 size-2 shrink-0 rounded-full bg-brand-700" aria-hidden="true" />
+          <p>{{ t('pricing.inviteNote') }}</p>
+        </div>
+
+        <div v-if="loading" class="mx-auto flex max-w-md items-center justify-center gap-2 py-16 text-muted" role="status">
           <LoaderCircle class="size-5 animate-spin" aria-hidden="true" />
           <span>{{ t('state.loading') }}</span>
         </div>
 
-        <!-- Error -->
         <BaseAlert v-else-if="error" tone="danger" :title="t('error.title')" class="mx-auto max-w-md">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <span>{{ error }}</span>
@@ -86,7 +111,6 @@ function periodSuffix(plan: PricingPlan): string {
           </div>
         </BaseAlert>
 
-        <!-- Empty -->
         <BaseEmptyState
           v-else-if="sorted.length === 0"
           :icon="CircleMinus"
@@ -94,62 +118,49 @@ function periodSuffix(plan: PricingPlan): string {
           :description="t('pricing.emptyBody')"
         />
 
-        <!-- Plans -->
-        <div
-          v-else
-          class="grid items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3"
-        >
-          <div
+        <div v-else class="grid items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <PricingCard
             v-for="(plan, index) in sorted"
             :key="plan.id"
-            class="surface relative flex flex-col p-6"
-            :class="plan.highlighted ? 'border-2 border-brand-700 ring-1 ring-brand-ring' : ''"
-            :data-aos="'fade-up'"
-            :data-aos-delay="index * 50"
-          >
-            <span
-              v-if="plan.highlighted"
-              class="absolute -top-3 start-6 inline-flex items-center gap-1 rounded-full bg-brand-700 px-2.5 py-0.5 text-caption font-medium text-white"
-            >
-              <Sparkles class="size-3.5" aria-hidden="true" />
-              {{ t('pricing.featured') }}
-            </span>
-
-            <h3 class="text-h3 font-semibold text-ink">{{ plan.name }}</h3>
-            <p v-if="plan.description" class="mt-2 text-body text-muted">{{ plan.description }}</p>
-
-            <div class="mt-6 flex items-baseline gap-2">
-              <template v-if="plan.price !== null">
-                <span class="text-h1 font-semibold tracking-tight text-ink">
-                  {{ formatCurrency(plan.price, plan.currency) }}
-                </span>
-                <span class="text-caption text-muted">{{ periodSuffix(plan) }}</span>
-              </template>
-              <template v-else>
-                <span class="text-h3 font-semibold text-ink">{{ t('pricing.comingSoon') }}</span>
-              </template>
-            </div>
-
-            <p
-              v-if="!plan.purchase_available && plan.price !== null"
-              class="mt-6 text-small text-muted"
-            >
-              {{ t('pricing.paidUnavailable') }}
-            </p>
-
-            <ul v-if="plan.features && plan.features.length > 0" class="mt-6 space-y-2.5 border-t border-line pt-6">
-              <li
-                v-for="feature in plan.features"
-                :key="feature"
-                class="flex items-start gap-2.5 text-body text-ink"
-              >
-                <CheckCircle2 class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-                {{ feature }}
-              </li>
-            </ul>
-          </div>
+            :plan="plan"
+            data-aos="fade-up"
+            :data-aos-delay="index * 60"
+          />
         </div>
+
+        <p class="mx-auto mt-8 max-w-2xl text-center text-small text-muted">
+          {{ t('pricing.taxNote') }}
+        </p>
       </div>
+    </section>
+
+    <section v-if="pricingFaq.length > 0" class="border-y border-line bg-surface-2 py-16 md:py-24">
+      <div class="mx-auto max-w-3xl px-4 md:px-6">
+        <SectionHeading
+          :eyebrow="t('marketing.home.faqEyebrow')"
+          :title="t('pricing.faqTitle')"
+          :description="t('pricing.faqBody')"
+        />
+        <div class="mt-8" data-aos="fade-up">
+          <FaqAccordion :items="pricingFaq" id-prefix="pricing-faq" />
+        </div>
+        <p class="mt-6 text-center text-small text-muted">
+          {{ t('pricing.faqMore') }}
+          <RouterLink to="/help" class="font-medium text-brand-ink hover:underline">
+            {{ t('marketing.nav.help') }}
+          </RouterLink>
+        </p>
+      </div>
+    </section>
+
+    <div class="pt-16 md:pt-24">
+      <CtaSection
+        :title="t('pricing.ctaTitle')"
+        :body="t('pricing.ctaBody')"
+        :primary-label="t('marketing.nav.waitlistCta')"
+        :secondary-label="t('marketing.nav.contact')"
+        secondary-to="/contact"
+      />
     </div>
-  </section>
+  </div>
 </template>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { CheckCircle2, Send } from '@/components/icons'
+import { CheckCircle2, Clock, HelpCircle, Send, UserPlus } from '@/components/icons'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import { useI18n } from '@/i18n'
+import { useSeo } from '@/composables/useSeo'
 import { ApiError } from '@/lib/axiosClient'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -24,6 +25,7 @@ import { submitContact } from '@/services/marketingService'
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const { t } = useI18n()
+const { set: setSeo } = useSeo()
 
 const name = ref('')
 const email = ref('')
@@ -40,6 +42,11 @@ const submitting = ref(false)
 const sent = ref(false)
 
 onMounted(() => {
+  setSeo({
+    title: t('contact.title'),
+    description: t('contact.subtitle'),
+    type: 'website',
+  })
   AOS.init({
     duration: 600,
     easing: 'ease-out-quart',
@@ -119,8 +126,10 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <section class="py-16 md:py-24">
-    <div class="mx-auto max-w-3xl px-4 md:px-6">
+  <section class="relative overflow-hidden py-16 md:py-24">
+    <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-gradient-to-b from-brand-100/50 to-transparent dark:from-brand-700/20" aria-hidden="true" />
+
+    <div class="mx-auto max-w-5xl px-4 md:px-6">
       <Transition name="page" mode="out-in">
         <!-- Success -->
         <div
@@ -142,68 +151,101 @@ async function submit(): Promise<void> {
         </div>
 
         <!-- Form -->
-        <div v-else key="form">
-          <div class="text-center" data-aos="fade-up">
-            <span class="mx-auto mb-4 grid size-12 place-items-center rounded-xl bg-surface-2 text-muted ring-1 ring-line">
-              <Send class="size-6" aria-hidden="true" />
-            </span>
-            <h1 class="text-h1 font-semibold tracking-tight text-ink">{{ t('contact.title') }}</h1>
-            <p class="mt-3 text-muted">{{ t('contact.subtitle') }}</p>
-          </div>
+        <div v-else key="form" class="grid gap-8 lg:grid-cols-[1fr_18rem] lg:items-start">
+          <div>
+            <div data-aos="fade-up">
+              <span class="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-caption font-medium text-muted">
+                <span class="size-1.5 rounded-full bg-brand-700" aria-hidden="true" />
+                {{ t('contact.eyebrow') }}
+              </span>
+              <h1 class="mt-5 text-display font-semibold tracking-tight text-ink">{{ t('contact.title') }}</h1>
+              <p class="mt-3 max-w-xl text-lead text-muted">{{ t('contact.subtitle') }}</p>
+            </div>
 
-          <div class="surface mt-10 p-6 md:p-8" data-aos="fade-up" data-aos-delay="100">
-            <form class="space-y-4" @submit.prevent="submit">
-              <BaseAlert v-if="formError" tone="danger" dismissible @dismiss="formError = null">
-                {{ formError }}
-              </BaseAlert>
+            <div class="surface mt-8 p-6 md:p-8" data-aos="fade-up" data-aos-delay="80">
+              <form class="space-y-4" @submit.prevent="submit">
+                <BaseAlert v-if="formError" tone="danger" dismissible @dismiss="formError = null">
+                  {{ formError }}
+                </BaseAlert>
 
-              <HoneypotField v-model="website" />
+                <HoneypotField v-model="website" />
 
-              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <BaseInput
+                    v-model="name"
+                    :label="t('common.name')"
+                    :error="nameError"
+                    autocomplete="name"
+                    required
+                  />
+
+                  <BaseInput
+                    v-model="email"
+                    type="email"
+                    :label="t('common.email')"
+                    :error="emailError"
+                    autocomplete="email"
+                    required
+                  />
+                </div>
+
                 <BaseInput
-                  v-model="name"
-                  :label="t('common.name')"
-                  :error="nameError"
-                  autocomplete="name"
+                  v-model="subject"
+                  :label="t('common.subject')"
+                  :error="subjectError"
+                  :placeholder="t('contact.subjectPlaceholder')"
+                  maxlength="150"
                   required
                 />
 
-                <BaseInput
-                  v-model="email"
-                  type="email"
-                  :label="t('common.email')"
-                  :error="emailError"
-                  autocomplete="email"
+                <BaseTextarea
+                  v-model="message"
+                  :label="t('contact.messagePlaceholder')"
+                  :error="messageError"
+                  :placeholder="t('contact.messagePlaceholder')"
+                  :rows="6"
+                  :maxlength="5000"
                   required
                 />
-              </div>
 
-              <BaseInput
-                v-model="subject"
-                :label="t('common.subject')"
-                :error="subjectError"
-                :placeholder="t('contact.subjectPlaceholder')"
-                maxlength="150"
-                required
-              />
-
-              <BaseTextarea
-                v-model="message"
-                :label="t('contact.messagePlaceholder')"
-                :error="messageError"
-                :placeholder="t('contact.messagePlaceholder')"
-                :rows="6"
-                :maxlength="5000"
-                required
-              />
-
-              <div class="pt-2">
-                <BaseButton type="submit" :loading="submitting" block size="lg">
-                  {{ t('contact.submit') }}
-                </BaseButton>
-              </div>
-            </form>
+                <div class="pt-2">
+                  <BaseButton type="submit" :loading="submitting" block size="lg">
+                    {{ t('contact.submit') }}
+                  </BaseButton>
+                </div>
+              </form>
+            </div>
           </div>
+
+          <aside class="space-y-4 lg:sticky lg:top-28" data-aos="fade-up" data-aos-delay="120">
+            <div class="surface p-5">
+              <span class="grid size-9 place-items-center rounded-lg bg-brand-soft text-brand-ink ring-1 ring-brand-ring">
+                <Clock class="size-4" aria-hidden="true" />
+              </span>
+              <h2 class="mt-3 text-h4 font-semibold text-ink">{{ t('contact.responseTitle') }}</h2>
+              <p class="mt-1 text-small text-muted">{{ t('contact.responseBody') }}</p>
+            </div>
+            <div class="surface p-5">
+              <span class="grid size-9 place-items-center rounded-lg bg-brand-soft text-brand-ink ring-1 ring-brand-ring">
+                <HelpCircle class="size-4" aria-hidden="true" />
+              </span>
+              <h2 class="mt-3 text-h4 font-semibold text-ink">{{ t('contact.helpTitle') }}</h2>
+              <p class="mt-1 text-small text-muted">{{ t('contact.helpBody') }}</p>
+              <BaseButton class="mt-3" variant="ghost" size="sm" to="/help">
+                {{ t('marketing.nav.help') }}
+              </BaseButton>
+            </div>
+            <div class="surface p-5">
+              <span class="grid size-9 place-items-center rounded-lg bg-brand-soft text-brand-ink ring-1 ring-brand-ring">
+                <UserPlus class="size-4" aria-hidden="true" />
+              </span>
+              <h2 class="mt-3 text-h4 font-semibold text-ink">{{ t('contact.waitlistTitle') }}</h2>
+              <p class="mt-1 text-small text-muted">{{ t('contact.waitlistBody') }}</p>
+              <BaseButton class="mt-3" variant="ghost" size="sm" to="/waitlist">
+                {{ t('marketing.nav.waitlistCta') }}
+              </BaseButton>
+            </div>
+          </aside>
         </div>
       </Transition>
     </div>

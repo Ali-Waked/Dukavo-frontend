@@ -71,6 +71,7 @@ async function load(): Promise<void> {
 }
 
 onMounted(() => {
+  setSeo({ title: t('about.title'), description: t('about.subtitle') })
   AOS.init({ duration: 600, easing: 'ease-out-quart', once: false, offset: 120 })
   void load()
 })
