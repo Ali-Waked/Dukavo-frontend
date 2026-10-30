@@ -52,10 +52,6 @@ export function markAllNotificationsRead(): Promise<{ updated: number }> {
   return api.post<{ updated: number }>(PATHS.readAll)
 }
 
-export function markNotificationUnread(id: string): Promise<AppNotification> {
-  return api.post<AppNotification>(`${PATHS.list}/${id}/unread`)
-}
-
 export function dismissNotification(id: string): Promise<void> {
   return api.delete<void>(`${PATHS.list}/${id}`)
 }
