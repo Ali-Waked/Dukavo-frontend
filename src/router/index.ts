@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { onUnauthorized } from '@/lib/axiosClient'
+import { ACCOUNT_STATUS_ROUTE, ONBOARDING_ROUTE } from '@/lib/authDestination'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import MarketingLayout from '@/layouts/MarketingLayout.vue'
@@ -9,6 +10,8 @@ import LoginPage from '@/pages/auth/LoginPage.vue'
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage.vue'
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage.vue'
 import VerifyEmailPage from '@/pages/auth/VerifyEmailPage.vue'
+import OnboardingPage from '@/pages/auth/OnboardingPage.vue'
+import AccountStatusPage from '@/pages/auth/AccountStatusPage.vue'
 
 import HomePage from '@/pages/marketing/HomePage.vue'
 import FeaturesPage from '@/pages/marketing/FeaturesPage.vue'
@@ -23,12 +26,6 @@ import HelpPage from '@/pages/marketing/HelpPage.vue'
 import TermsPage from '@/pages/marketing/TermsPage.vue'
 import PrivacyPage from '@/pages/marketing/PrivacyPage.vue'
 import AcceptableUsePage from '@/pages/marketing/AcceptableUsePage.vue'
-import ProductsPage from '@/pages/marketing/features/ProductsPage.vue'
-import OrdersPage from '@/pages/marketing/features/OrdersPage.vue'
-import InventoryPage from '@/pages/marketing/features/InventoryPage.vue'
-import CustomersPage from '@/pages/marketing/features/CustomersPage.vue'
-import ConversationsPage from '@/pages/marketing/features/ConversationsPage.vue'
-import TeamPage from '@/pages/marketing/features/TeamPage.vue'
 
 import NotFoundPage from '@/pages/errors/NotFoundPage.vue'
 import ForbiddenPage from '@/pages/errors/ForbiddenPage.vue'
@@ -67,7 +64,12 @@ const router = createRouter({
         { path: 'features', name: 'marketing.features', component: FeaturesPage, meta: { title: 'Features' } },
         { path: 'how-it-works', name: 'marketing.how-it-works', component: HowItWorksPage, meta: { title: 'How it works' } },
         { path: 'pricing', name: 'marketing.pricing', component: PricingPage, meta: { title: 'Pricing' } },
-        { path: 'waitlist', name: 'marketing.waitlist', component: WaitlistPage, meta: { title: 'Waitlist' } },
+        {
+          path: 'waitlist',
+          name: 'marketing.waitlist',
+          component: WaitlistPage,
+          meta: { title: 'Waitlist', guest: true },
+        },
         { path: 'contact', name: 'marketing.contact', component: ContactPage, meta: { title: 'Contact' } },
         { path: 'about', name: 'marketing.about', component: AboutPage, meta: { title: 'About' } },
         { path: 'blog', name: 'marketing.blog', component: BlogPage, meta: { title: 'Blog' } },
@@ -81,12 +83,22 @@ const router = createRouter({
         { path: 'terms', name: 'marketing.terms', component: TermsPage, meta: { title: 'Terms' } },
         { path: 'privacy', name: 'marketing.privacy', component: PrivacyPage, meta: { title: 'Privacy' } },
         { path: 'acceptable-use', name: 'marketing.acceptable-use', component: AcceptableUsePage, meta: { title: 'Acceptable Use' } },
-        { path: 'features/products', name: 'marketing.features.products', component: ProductsPage, meta: { title: 'Products' } },
-        { path: 'features/orders', name: 'marketing.features.orders', component: OrdersPage, meta: { title: 'Orders' } },
-        { path: 'features/inventory', name: 'marketing.features.inventory', component: InventoryPage, meta: { title: 'Inventory' } },
-        { path: 'features/customers', name: 'marketing.features.customers', component: CustomersPage, meta: { title: 'Customers' } },
-        { path: 'features/conversations', name: 'marketing.features.conversations', component: ConversationsPage, meta: { title: 'Conversations' } },
-        { path: 'features/team', name: 'marketing.features.team', component: TeamPage, meta: { title: 'Team' } },
+        // The old one-feature pages duplicated the capabilities list with less
+        // depth. Keep their URLs alive as anchors into the grouped features page.
+        { path: 'features/products', redirect: { name: 'marketing.features', hash: '#catalogue' } },
+        { path: 'features/inventory', redirect: { name: 'marketing.features', hash: '#catalogue' } },
+        { path: 'features/bundles', redirect: { name: 'marketing.features', hash: '#catalogue' } },
+        { path: 'features/orders', redirect: { name: 'marketing.features', hash: '#sales' } },
+        { path: 'features/customers', redirect: { name: 'marketing.features', hash: '#sales' } },
+        { path: 'features/conversations', redirect: { name: 'marketing.features', hash: '#sales' } },
+        { path: 'features/recovery', redirect: { name: 'marketing.features', hash: '#sales' } },
+        { path: 'features/team', redirect: { name: 'marketing.features', hash: '#operations' } },
+        {
+          path: ':pathMatch(.*)*',
+          name: 'errors.not-found',
+          component: NotFoundPage,
+          meta: { title: 'Not found', hideFooterNewsletter: true },
+        },
       ],
     },
     {
@@ -106,6 +118,24 @@ const router = createRouter({
           name: 'auth.reset-password',
           component: ResetPasswordPage,
           meta: { title: 'Reset password' },
+        },
+      ],
+    },
+    {
+      path: '/',
+      component: AuthLayout,
+      children: [
+        {
+          path: 'onboarding',
+          name: ONBOARDING_ROUTE,
+          component: OnboardingPage,
+          meta: { requiresAuth: true, title: 'Set up your workspace' },
+        },
+        {
+          path: 'account-status',
+          name: ACCOUNT_STATUS_ROUTE,
+          component: AccountStatusPage,
+          meta: { title: 'Account status' },
         },
       ],
     },
@@ -407,20 +437,27 @@ const router = createRouter({
       component: ErrorPage,
       meta: { title: 'Something went wrong' },
     },
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'errors.not-found',
-      component: NotFoundPage,
-      meta: { title: 'Not found' },
-    },
   ],
+  scrollBehavior(to, _from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash) {
+      return { el: to.hash, top: 96, behavior: 'smooth' }
+    }
+    return { top: 0 }
+  },
+})
+
+router.afterEach((to) => {
+  if (typeof document === 'undefined') return
+  const title = to.meta.title
+  document.title = !title || title === 'Dukavo' ? 'Dukavo' : `${title} · Dukavo`
 })
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
   // The first navigation settles whether a session exists; everything after can
-  // be answered synchronously.
+  // be answered from the booted session.
   if (!auth.initialised) {
     await auth.bootstrap()
   }
@@ -432,23 +469,45 @@ router.beforeEach(async (to) => {
     }
   }
 
+  // Guest-only surfaces include the waitlist: an account that already exists
+  // must never be asked to join it again. The destination is derived from the
+  // account, not from whichever public page happened to be open.
   if (to.meta.guest && auth.isAuthenticated) {
-    return { name: 'dashboard.index' }
+    if (auth.isPlatformUser && auth.activeTenant) {
+      await auth.enterPlatformMode()
+    }
+    return auth.homeDestination
+  }
+
+  if (!auth.isAuthenticated) {
+    return true
+  }
+
+  const home = auth.homeDestination
+
+  // Invitations are accepted by setting a password. Until then the account can
+  // prove who it is but cannot enter a workspace or the platform surfaces.
+  if (auth.user?.status === 'invited' || auth.user?.status === 'suspended') {
+    if (to.name !== 'auth.verify-email' && to.name !== ACCOUNT_STATUS_ROUTE) {
+      return home
+    }
+  }
+
+  // Onboarding is only for an active account with no workspace. Anyone who
+  // already has one is sent to the section their permissions actually open.
+  if (to.name === ONBOARDING_ROUTE && home.name !== ONBOARDING_ROUTE) {
+    return home
   }
 
   if (to.meta.requiresPlatform && !auth.isPlatformUser) {
     return { name: 'errors.forbidden' }
   }
 
-  // A merchant page needs a workspace in context. A platform operator browsing
-  // in platform mode is steered to the platform overview rather than left on a
-  // page whose requests would resolve no tenant and fail. Platform-mode routes
-  // (users, roles, audit) are exempt: they resolve against platform roles, which
-  // need no tenant.
+  // A merchant page needs a workspace in context. If booting produced no active
+  // workspace, the account's real home is onboarding, an account-status page,
+  // or the platform overview — never a tenant route that would fail every call.
   if (to.meta.permission && !auth.activeTenant && !to.meta.requiresPlatform) {
-    return auth.isPlatformUser
-      ? { name: 'platform.dashboard' }
-      : { name: 'errors.forbidden' }
+    return home
   }
 
   if (to.meta.permission && !auth.can(to.meta.permission)) {

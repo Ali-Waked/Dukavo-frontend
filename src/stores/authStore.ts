@@ -6,6 +6,7 @@ import {
   fetchSession,
 } from '@/services/authService'
 import { setAccessToken, setTenantSlug } from '@/lib/axiosClient'
+import { resolveAuthDestination } from '@/lib/authDestination'
 import type { Session } from '@/types/auth'
 
 /**
@@ -98,6 +99,9 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const isPlatformMode = computed(() => isPlatformUser.value && activeTenant.value === null)
 
+  /** The one route the account should land on, used by guards and sign-in. */
+  const homeDestination = computed(() => resolveAuthDestination(session.value))
+
   const roles = computed(() => {
     const activeId = activeTenant.value?.id ?? null
     return session.value?.roles.find((entry) => entry.tenant_id === activeId)?.roles ?? []
@@ -144,18 +148,18 @@ export const useAuthStore = defineStore('auth', () => {
       const next = await fetchMe()
 
       if (next.user.is_platform_user) {
-        // Platform operators land on the platform overview unless they had
-        // deliberately opened a workspace on their last visit.
-        if (next.active_tenant === null) {
-          persistTenant(null)
-        }
+        // A platform operator starts at platform level on every fresh sign-in.
+        // They may deliberately open a workspace afterwards; that choice is
+        // preserved across refreshes, but it never changes where login lands.
+        await enterPlatformMode()
       } else {
-        // Always land inside a tenant: the remembered choice when the account
-        // still holds it, otherwise the first membership. Without one, every
-        // tenant-scoped request (dashboard, orders, customers) goes out without
-        // an X-Tenant header and the backend refuses it.
+        // Always land inside an active tenant: the remembered choice when the
+        // account still holds it, otherwise the first active membership.
+        // Suspended workspaces are never selected — their status page is the
+        // honest destination, not a dashboard whose requests would all fail.
+        const active = next.tenants.filter((entry) => entry.status === 'active' && entry.is_active !== false)
         const pick =
-          next.tenants.find((entry) => entry.slug === readTenantSlug()) ?? next.tenants[0]
+          active.find((entry) => entry.slug === readTenantSlug()) ?? active[0]
         if (pick) {
           await switchTenant(pick.slug)
         }
@@ -230,12 +234,16 @@ export const useAuthStore = defineStore('auth', () => {
       const next = await fetchMe()
 
       // The remembered slug no longer resolves (access revoked, tenant
-      // removed) or there never was one: fall back to the first membership so
-      // the app still boots with a tenant in context. A platform operator has
-      // a deliberate platform context to boot into instead, so it is left
-      // alone and starts on the platform overview.
-      if (!next.active_tenant && !next.user.is_platform_user && next.tenants.length > 0 && next.tenants[0]) {
-        await switchTenant(next.tenants[0].slug)
+      // suspended) or there never was one: fall back to the first *active*
+      // membership. A platform operator has a deliberate platform context to
+      // boot into instead, so it is left alone and starts on the platform
+      // overview.
+      if (!next.active_tenant && !next.user.is_platform_user) {
+        const active = next.tenants.filter((entry) => entry.status === 'active' && entry.is_active !== false)
+        const pick = active[0]
+        if (pick) {
+          await switchTenant(pick.slug)
+        }
       }
     } catch {
       clear()
@@ -269,6 +277,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isPlatformUser,
     isPlatformMode,
+    homeDestination,
     user,
     tenants,
     activeTenant,

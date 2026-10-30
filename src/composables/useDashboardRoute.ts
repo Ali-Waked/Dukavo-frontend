@@ -4,20 +4,16 @@ import type { RouteLocationRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
 /**
- * The dashboard that matches the signed-in account's type.
+ * The account's own landing route.
  *
- * A platform operator always lands on the platform overview — that surface is
- * reachable by every platform role, whereas a workspace dashboard depends on
- * tenant-scoped permissions they may not hold. A merchant only ever sees their
- * own workspace dashboard; the platform route is never offered to them.
- *
- * Shared by every surface that offers a "go to dashboard" shortcut so the rule
- * lives in one place.
+ * This is not always `/dashboard`: a platform operator belongs on the platform
+ * overview, an employee without `dashboard.view` belongs in the first section
+ * they can open, and an invited or workspace-less account belongs on its status
+ * or onboarding page. Reusing the auth resolver means a "go to dashboard"
+ * shortcut can never point at a page the guard will immediately refuse.
  */
 export function useDashboardRoute(): ComputedRef<RouteLocationRaw> {
   const auth = useAuthStore()
 
-  return computed<RouteLocationRaw>(() =>
-    auth.isPlatformUser ? { name: 'platform.dashboard' } : { name: 'dashboard.index' },
-  )
+  return computed<RouteLocationRaw>(() => auth.homeDestination)
 }

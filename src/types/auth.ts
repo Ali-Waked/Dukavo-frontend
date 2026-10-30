@@ -5,6 +5,8 @@ export interface ActiveTenant {
   id: number
   name: string
   slug: string
+  status?: 'active' | 'suspended'
+  is_active?: boolean
   currency: string
   timezone: string
   locale: string | null

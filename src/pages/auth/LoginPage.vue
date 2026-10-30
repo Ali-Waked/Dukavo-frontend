@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
 import { Eye, EyeOff } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/composables/useAuth'
 import { ApiError } from '@/lib/axiosClient'
+import { ACCOUNT_STATUS_ROUTE, isSafeInternalRedirect } from '@/lib/authDestination'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
@@ -72,12 +74,30 @@ async function submit(): Promise<void> {
 
   try {
     await auth.login(email.value.trim(), password.value, remember.value)
-    const redirect =
-      typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
-        ? route.query.redirect
-        : '/dashboard'
-    await router.replace(redirect)
+
+    // Honour a protected page the visitor originally asked for, but never a
+    // public marketing page: that is how an authenticated merchant used to end
+    // up back on the waitlist. Everything else lands on the account resolver.
+    const requested = route.query.redirect
+    let destination: RouteLocationRaw = auth.homeDestination
+
+    if (isSafeInternalRedirect(requested)) {
+      const resolved = router.resolve(requested)
+      const isProtectedAppRoute =
+        resolved.matched.some((record) => record.meta.requiresAuth) && !resolved.meta.guest
+
+      if (isProtectedAppRoute) {
+        destination = requested
+      }
+    }
+
+    await router.replace(destination)
   } catch (error) {
+    if (error instanceof ApiError && error.status === 403 && error.code === 'account_suspended') {
+      await router.replace({ name: ACCOUNT_STATUS_ROUTE, query: { status: 'suspended' } })
+      return
+    }
+
     formError.value = describe(error)
     password.value = ''
   }
