@@ -4,6 +4,7 @@ import { Pencil, Trash2 } from '@/components/icons'
 import { useI18n, type MessageKey } from '@/i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
+import AvatarCropperModal from '@/components/ui/AvatarCropperModal.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -38,6 +39,10 @@ const loadError = ref<string | null>(null)
 const saving = ref(false)
 const avatarBusy = ref(false)
 const generalError = ref<string | null>(null)
+const photoError = ref<string | null>(null)
+const cropOpen = ref(false)
+const cropFile = ref<File | null>(null)
+const cropError = ref<string | null>(null)
 const errors = reactive<Record<string, string>>({})
 const fileInput = ref<HTMLInputElement | null>(null)
 
@@ -48,8 +53,13 @@ const languageOptions = computed(() => [
   { value: 'ar', label: t('language.ar') },
 ])
 
+const avatarActionLabel = computed(() =>
+  profile.value?.avatar_url ? t('profile.changePhoto') : t('profile.uploadPhoto'),
+)
+
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
-const MAX_BYTES = 2 * 1024 * 1024
+const ACCEPTED_EXTENSIONS = /\.(jpe?g|png|webp)$/i
+const MAX_SOURCE_BYTES = 20 * 1024 * 1024
 
 function applyProfile(next: Profile): void {
   profile.value = next
@@ -106,55 +116,95 @@ async function save(): Promise<void> {
 }
 
 function triggerFilePicker(): void {
+  if (avatarBusy.value) {
+    return
+  }
+
+  photoError.value = null
   fileInput.value?.click()
 }
 
-async function onFileSelected(event: Event): Promise<void> {
+function isSupportedImage(file: File): boolean {
+  if (ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])) {
+    return true
+  }
+
+  return file.type === '' && ACCEPTED_EXTENSIONS.test(file.name)
+}
+
+function onFileSelected(event: Event): void {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
+  input.value = ''
 
   if (!file) {
     return
   }
 
-  clearErrors()
+  photoError.value = null
 
-  if (!ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])) {
-    generalError.value = t('profile.avatarType')
-    input.value = ''
+  if (!isSupportedImage(file)) {
+    photoError.value = t('profile.avatarType')
     return
   }
 
-  if (file.size > MAX_BYTES) {
-    generalError.value = t('profile.avatarTooLarge')
-    input.value = ''
+  if (file.size > MAX_SOURCE_BYTES) {
+    photoError.value = t('profile.avatarTooLarge')
     return
   }
 
+  cropError.value = null
+  cropFile.value = file
+  cropOpen.value = true
+}
+
+function closeCropper(): void {
+  if (avatarBusy.value) {
+    return
+  }
+
+  cropOpen.value = false
+  cropFile.value = null
+  cropError.value = null
+}
+
+function avatarErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.isValidation && error.fields?.avatar?.[0]) {
+    return error.fields.avatar[0]
+  }
+
+  return error instanceof ApiError ? error.message : t('profile.photoFailed')
+}
+
+async function saveCroppedAvatar(file: File): Promise<void> {
+  cropError.value = null
   avatarBusy.value = true
 
   try {
-    applyProfile(await uploadAvatar(file))
-    await auth.refreshSession()
+    const updated = await uploadAvatar(file)
+    applyProfile(updated)
+    cropOpen.value = false
+    cropFile.value = null
+    photoError.value = null
     toast.success(t('profile.photoUpdated'))
+    void auth.refreshSession().catch(() => undefined)
   } catch (error) {
-    captureApiError(error, 'profile.photoFailed')
+    cropError.value = avatarErrorMessage(error)
   } finally {
     avatarBusy.value = false
-    input.value = ''
   }
 }
 
 async function removePhoto(): Promise<void> {
-  clearErrors()
+  photoError.value = null
   avatarBusy.value = true
 
   try {
     applyProfile(await removeAvatar())
-    await auth.refreshSession()
     toast.success(t('profile.photoRemoved'))
+    void auth.refreshSession().catch(() => undefined)
   } catch (error) {
-    captureApiError(error, 'profile.photoFailed')
+    photoError.value = avatarErrorMessage(error)
   } finally {
     avatarBusy.value = false
   }
@@ -208,8 +258,25 @@ async function changeLanguage(value: string): Promise<void> {
         <h2 class="text-h4 font-semibold text-ink">{{ t('profile.photo') }}</h2>
         <p class="mt-1 text-small text-muted">{{ t('profile.photoHint') }}</p>
 
+        <BaseAlert
+          v-if="photoError"
+          tone="danger"
+          dismissible
+          class="mt-4"
+          @dismiss="photoError = null"
+        >
+          {{ photoError }}
+        </BaseAlert>
+
         <div class="mt-4 flex flex-wrap items-center gap-5">
-          <div class="relative">
+          <button
+            type="button"
+            class="relative block shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-default"
+            :disabled="avatarBusy"
+            :aria-label="avatarActionLabel"
+            :title="avatarActionLabel"
+            @click="triggerFilePicker"
+          >
             <UserAvatar :name="profile.name" :src="profile.avatar_url" size="xl" />
             <span
               v-if="avatarBusy"
@@ -217,7 +284,7 @@ async function changeLanguage(value: string): Promise<void> {
             >
               <BaseSpinner size="lg" />
             </span>
-          </div>
+          </button>
 
           <div class="flex flex-wrap gap-2">
             <BaseButton
@@ -226,7 +293,7 @@ async function changeLanguage(value: string): Promise<void> {
               :loading="avatarBusy"
               @click="triggerFilePicker"
             >
-              {{ profile.avatar_url ? t('profile.changePhoto') : t('profile.uploadPhoto') }}
+              {{ avatarActionLabel }}
             </BaseButton>
 
             <BaseButton
@@ -317,6 +384,15 @@ async function changeLanguage(value: string): Promise<void> {
           </div>
         </dl>
       </section>
+
+      <AvatarCropperModal
+        :open="cropOpen"
+        :file="cropFile"
+        :saving="avatarBusy"
+        :error="cropError"
+        @close="closeCropper"
+        @save="saveCroppedAvatar"
+      />
     </template>
   </div>
 </template>

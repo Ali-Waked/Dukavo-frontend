@@ -108,6 +108,8 @@ import {
   Wallet,
   WifiOff,
   X,
+  ZoomIn,
+  ZoomOut,
 } from '@lucide/vue'
 
 /**
@@ -236,6 +238,8 @@ export {
   Wallet,
   WifiOff,
   X,
+  ZoomIn,
+  ZoomOut,
 
 }
 
