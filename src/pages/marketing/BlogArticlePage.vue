@@ -425,4 +425,23 @@ onBeforeUnmount(() => {
   height: auto;
   border-radius: var(--radius-xl);
 }
+
+.rich-content :deep(figure) {
+  margin: 0 0 1.5em;
+}
+
+.rich-content :deep(figcaption) {
+  margin-top: 0.6em;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-subtle);
+  text-align: center;
+}
+
+.rich-content :deep(hr) {
+  margin: 2em auto;
+  border: 0;
+  border-top: 1px solid var(--border-line);
+  width: 40%;
+}
 </style>
