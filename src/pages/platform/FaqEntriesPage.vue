@@ -58,11 +58,15 @@ const formOpen = ref(false)
 const editingId = ref<number | null>(null)
 const formQuestion = ref('')
 const formAnswer = ref('')
+const formQuestionAr = ref('')
+const formAnswerAr = ref('')
 const formCategory = ref('')
 const formSortOrder = ref('0')
 const formActive = ref(true)
 const questionError = ref<string | null>(null)
 const answerError = ref<string | null>(null)
+const questionArError = ref<string | null>(null)
+const answerArError = ref<string | null>(null)
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
@@ -150,6 +154,8 @@ function clearFilters(): void {
 function clearFormErrors(): void {
   questionError.value = null
   answerError.value = null
+  questionArError.value = null
+  answerArError.value = null
   formError.value = null
 }
 
@@ -157,6 +163,8 @@ function openCreate(): void {
   editingId.value = null
   formQuestion.value = ''
   formAnswer.value = ''
+  formQuestionAr.value = ''
+  formAnswerAr.value = ''
   formCategory.value = ''
   formSortOrder.value = '0'
   formActive.value = true
@@ -168,6 +176,8 @@ function openEdit(entry: FaqEntry): void {
   editingId.value = entry.id
   formQuestion.value = entry.question
   formAnswer.value = entry.answer
+  formQuestionAr.value = entry.question_ar ?? ''
+  formAnswerAr.value = entry.answer_ar ?? ''
   formCategory.value = entry.category ?? ''
   formSortOrder.value = String(entry.sort_order)
   formActive.value = entry.active
@@ -193,7 +203,9 @@ function validateForm(): boolean {
 function buildPayload(): FaqEntryPayload {
   return {
     question: formQuestion.value.trim(),
+    question_ar: formQuestionAr.value.trim() || null,
     answer: formAnswer.value.trim(),
+    answer_ar: formAnswerAr.value.trim() || null,
     category: formCategory.value.trim() || null,
     sort_order: Number(formSortOrder.value) || 0,
     active: formActive.value,
@@ -205,8 +217,15 @@ function showFormError(caught: unknown): void {
     const fields = caught.fields
     questionError.value = fields['question']?.[0] ?? null
     answerError.value = fields['answer']?.[0] ?? null
+    questionArError.value = fields['question_ar']?.[0] ?? null
+    answerArError.value = fields['answer_ar']?.[0] ?? null
 
-    if (questionError.value === null && answerError.value === null) {
+    if (
+      questionError.value === null
+      && answerError.value === null
+      && questionArError.value === null
+      && answerArError.value === null
+    ) {
       formError.value = caught.message || t('error.title')
     }
     return
@@ -423,6 +442,30 @@ onMounted(load)
           :maxlength="2000"
           required
         />
+
+        <div class="space-y-4 border-t border-line pt-4">
+          <h3 class="text-sm font-semibold text-ink">{{ t('platform.faq.arabic') }}</h3>
+          <p class="text-small text-muted">{{ t('platform.faq.arabicHint') }}</p>
+
+          <BaseInput
+            v-model="formQuestionAr"
+            :label="t('platform.faq.questionAr')"
+            :error="questionArError"
+            :placeholder="t('platform.faq.questionPlaceholderAr')"
+            maxlength="200"
+            dir="rtl"
+          />
+
+          <BaseTextarea
+            v-model="formAnswerAr"
+            :label="t('platform.faq.answerAr')"
+            :error="answerArError"
+            :placeholder="t('platform.faq.answerPlaceholderAr')"
+            :rows="6"
+            :maxlength="2000"
+            dir="rtl"
+          />
+        </div>
 
         <div class="grid gap-4 sm:grid-cols-3">
           <BaseInput

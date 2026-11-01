@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, LoaderCircle, Sparkles } from '@/components/icons'
+import { ArrowLeft, Globe, LoaderCircle, Sparkles } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
@@ -22,6 +22,7 @@ import {
   createNewsletterArticle,
   fetchNewsletterArticle,
   updateNewsletterArticle,
+  uploadNewsletterContentImage,
 } from '@/services/platformContentService'
 import { generateNewsletterContent } from '@/services/aiService'
 import type { NewsletterArticle, NewsletterArticlePayload } from '@/types/marketing'
@@ -60,6 +61,20 @@ const published = ref(false)
 const metaTitle = ref('')
 const metaDescription = ref('')
 
+/**
+ * Arabic copy for the same article.
+ *
+ * One row holds both languages, so the slug, cover and publication state stay
+ * shared while the prose changes. Blank fields are valid: the public API falls
+ * back to English rather than publishing an empty translation.
+ */
+const activeLanguage = ref<'en' | 'ar'>('en')
+const titleAr = ref('')
+const excerptAr = ref('')
+const bodyAr = ref('')
+const metaTitleAr = ref('')
+const metaDescriptionAr = ref('')
+
 const coverFile = ref<File | null>(null)
 const removeCover = ref(false)
 const currentCoverUrl = ref<string | null>(null)
@@ -70,6 +85,9 @@ const slugError = ref<string | null>(null)
 const bodyError = ref<string | null>(null)
 const excerptError = ref<string | null>(null)
 const coverError = ref<string | null>(null)
+const titleArError = ref<string | null>(null)
+const bodyArError = ref<string | null>(null)
+const excerptArError = ref<string | null>(null)
 
 /* ------------------------------------------------------- ai content helper */
 
@@ -148,6 +166,11 @@ function populate(edition: NewsletterArticle): void {
   published.value = edition.status === 'published'
   metaTitle.value = edition.meta_title ?? ''
   metaDescription.value = edition.meta_description ?? ''
+  titleAr.value = edition.title_ar ?? ''
+  excerptAr.value = edition.excerpt_ar ?? ''
+  bodyAr.value = edition.body_ar ?? ''
+  metaTitleAr.value = edition.meta_title_ar ?? ''
+  metaDescriptionAr.value = edition.meta_description_ar ?? ''
   currentCoverUrl.value = edition.cover_image_url
 }
 
@@ -177,6 +200,9 @@ function clearErrors(): void {
   bodyError.value = null
   excerptError.value = null
   coverError.value = null
+  titleArError.value = null
+  bodyArError.value = null
+  excerptArError.value = null
 }
 
 function validate(): boolean {
@@ -208,10 +234,20 @@ function showFormError(caught: unknown): void {
     bodyError.value = fields['body']?.[0] ?? null
     excerptError.value = fields['excerpt']?.[0] ?? null
     coverError.value = fields['cover_image']?.[0] ?? null
+    titleArError.value = fields['title_ar']?.[0] ?? null
+    bodyArError.value = fields['body_ar']?.[0] ?? null
+    excerptArError.value = fields['excerpt_ar']?.[0] ?? null
 
-    const handled = [titleError, slugError, bodyError, excerptError, coverError].some(
-      (field) => field.value !== null,
-    )
+    const handled = [
+      titleError,
+      slugError,
+      bodyError,
+      excerptError,
+      coverError,
+      titleArError,
+      bodyArError,
+      excerptArError,
+    ].some((field) => field.value !== null)
 
     if (!handled) {
       formError.value = caught.message || t('error.title')
@@ -229,12 +265,17 @@ async function submit(): Promise<void> {
 
   const payload: NewsletterArticlePayload = {
     title: title.value.trim(),
+    title_ar: titleAr.value.trim() || null,
     slug: slug.value.trim() || null,
     excerpt: excerpt.value.trim() || null,
+    excerpt_ar: excerptAr.value.trim() || null,
     body: body.value,
+    body_ar: bodyAr.value.trim() === '' ? null : bodyAr.value,
     status: (published.value ? 'published' : 'draft') as NewsletterArticleStatus,
     meta_title: metaTitle.value.trim() || null,
+    meta_title_ar: metaTitleAr.value.trim() || null,
     meta_description: metaDescription.value.trim() || null,
+    meta_description_ar: metaDescriptionAr.value.trim() || null,
     cover_image: coverFile.value,
     remove_cover: removeCover.value,
   }
@@ -258,6 +299,13 @@ async function submit(): Promise<void> {
 
 function cancel(): void {
   void router.push({ name: 'platform.newsletters' })
+}
+
+/** Inline images are uploaded before save; the body only stores their URL. */
+async function uploadContentImage(file: File): Promise<string> {
+  const uploaded = await uploadNewsletterContentImage(file)
+
+  return uploaded.url
 }
 
 /* ------------------------------------------------------------ ai assistant */
@@ -348,14 +396,88 @@ onMounted(() => {
       <div class="grid gap-5 lg:grid-cols-3">
         <div class="space-y-5 lg:col-span-2">
           <div class="surface space-y-4 p-5">
-            <BaseInput
-              v-model="title"
-              :label="t('platform.newsletters.titleField')"
-              :error="titleError"
-              :placeholder="t('platform.newsletters.titlePlaceholder')"
-              maxlength="200"
-              required
-            />
+            <div
+              class="inline-flex rounded-lg border border-line bg-inset p-0.5"
+              role="tablist"
+              :aria-label="t('platform.newsletters.languageTabs')"
+            >
+              <button
+                v-for="language in (['en', 'ar'] as const)"
+                :key="language"
+                type="button"
+                role="tab"
+                :aria-selected="activeLanguage === language"
+                class="rounded-md px-3 py-1.5 text-small font-medium transition"
+                :class="activeLanguage === language ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'"
+                @click="activeLanguage = language"
+              >
+                {{ language === 'en' ? t('platform.newsletters.english') : t('platform.newsletters.arabic') }}
+              </button>
+            </div>
+
+            <template v-if="activeLanguage === 'en'">
+              <BaseInput
+                v-model="title"
+                :label="t('platform.newsletters.titleField')"
+                :error="titleError"
+                :placeholder="t('platform.newsletters.titlePlaceholder')"
+                maxlength="200"
+                required
+              />
+
+              <BaseTextarea
+                v-model="excerpt"
+                :label="t('platform.newsletters.excerpt')"
+                :error="excerptError"
+                :hint="t('platform.newsletters.excerptHint')"
+                :placeholder="t('platform.newsletters.excerptPlaceholder')"
+                :rows="2"
+                :maxlength="300"
+              />
+
+              <RichTextEditor
+                v-model="body"
+                :label="t('platform.newsletters.body')"
+                :error="bodyError"
+                :placeholder="t('platform.newsletters.bodyPlaceholder')"
+                :upload-image="uploadContentImage"
+                required
+              />
+            </template>
+
+            <template v-else>
+              <p class="rounded-lg bg-inset px-3 py-2 text-small text-muted" dir="rtl">
+                {{ t('platform.newsletters.arabicHint') }}
+              </p>
+
+              <BaseInput
+                v-model="titleAr"
+                :label="t('platform.newsletters.titleFieldAr')"
+                :error="titleArError"
+                :placeholder="t('platform.newsletters.titlePlaceholderAr')"
+                maxlength="200"
+                dir="rtl"
+              />
+
+              <BaseTextarea
+                v-model="excerptAr"
+                :label="t('platform.newsletters.excerptAr')"
+                :error="excerptArError"
+                :placeholder="t('platform.newsletters.excerptPlaceholderAr')"
+                :rows="2"
+                :maxlength="300"
+                dir="rtl"
+              />
+
+              <RichTextEditor
+                v-model="bodyAr"
+                :label="t('platform.newsletters.bodyAr')"
+                :error="bodyArError"
+                :placeholder="t('platform.newsletters.bodyPlaceholderAr')"
+                :upload-image="uploadContentImage"
+                dir="rtl"
+              />
+            </template>
 
             <BaseInput
               :model-value="slug"
@@ -364,24 +486,6 @@ onMounted(() => {
               :hint="slugHint ?? undefined"
               :placeholder="t('platform.newsletters.slugPlaceholder')"
               @update:model-value="onSlugInput"
-            />
-
-            <BaseTextarea
-              v-model="excerpt"
-              :label="t('platform.newsletters.excerpt')"
-              :error="excerptError"
-              :hint="t('platform.newsletters.excerptHint')"
-              :placeholder="t('platform.newsletters.excerptPlaceholder')"
-              :rows="2"
-              :maxlength="300"
-            />
-
-            <RichTextEditor
-              v-model="body"
-              :label="t('platform.newsletters.body')"
-              :error="bodyError"
-              :placeholder="t('platform.newsletters.bodyPlaceholder')"
-              required
             />
           </div>
         </div>
@@ -420,6 +524,29 @@ onMounted(() => {
               :rows="3"
               :maxlength="300"
             />
+
+            <div class="border-t border-line pt-4">
+              <h3 class="text-sm font-semibold text-ink">{{ t('platform.newsletters.seoArabic') }}</h3>
+
+              <BaseInput
+                v-model="metaTitleAr"
+                :label="t('platform.newsletters.metaTitleAr')"
+                :placeholder="t('platform.newsletters.metaTitlePlaceholderAr')"
+                maxlength="200"
+                dir="rtl"
+                class="mt-3"
+              />
+
+              <BaseTextarea
+                v-model="metaDescriptionAr"
+                :label="t('platform.newsletters.metaDescriptionAr')"
+                :placeholder="t('platform.newsletters.metaDescriptionPlaceholderAr')"
+                :rows="3"
+                :maxlength="300"
+                dir="rtl"
+                class="mt-3"
+              />
+            </div>
           </div>
 
           <div v-if="canUseAi" class="surface space-y-4 p-5">

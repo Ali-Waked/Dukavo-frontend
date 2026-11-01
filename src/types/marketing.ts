@@ -66,17 +66,22 @@ export interface PricingPlanPayload {
 export interface FaqEntry {
   id: number
   question: string
+  question_ar?: string | null
   answer: string
+  answer_ar?: string | null
   category: string | null
   sort_order: number
   active: boolean
+  locale?: string
   created_at?: string | null
   updated_at?: string | null
 }
 
 export interface FaqEntryPayload {
   question: string
+  question_ar?: string | null
   answer: string
+  answer_ar?: string | null
   category?: string | null
   sort_order?: number
   active?: boolean
@@ -130,14 +135,18 @@ export interface NewsletterSubscriber {
 export interface NewsletterSummary {
   id: number
   title: string
+  title_ar?: string | null
   slug: string
   excerpt: string | null
+  excerpt_ar?: string | null
   cover_image_url: string | null
   reading_minutes: number
   status: NewsletterArticleStatus
   status_label: string
   published_at: string | null
   updated_at?: string | null
+  /** The language the public API resolved this copy into. */
+  locale?: string
 }
 
 /**
@@ -146,19 +155,27 @@ export interface NewsletterSummary {
  */
 export interface NewsletterArticle extends NewsletterSummary {
   body: string
+  body_ar?: string | null
   meta_title: string | null
+  meta_title_ar?: string | null
   meta_description: string | null
+  meta_description_ar?: string | null
   created_at?: string | null
 }
 
 export interface NewsletterArticlePayload {
   title: string
+  title_ar?: string | null
   slug?: string | null
   excerpt?: string | null
+  excerpt_ar?: string | null
   body: string
+  body_ar?: string | null
   status?: NewsletterArticleStatus
   meta_title?: string | null
+  meta_title_ar?: string | null
   meta_description?: string | null
+  meta_description_ar?: string | null
   /** A replacement cover; absent leaves the current one in place. */
   cover_image?: File | null
   /** Explicitly clears the cover when no replacement is supplied. */

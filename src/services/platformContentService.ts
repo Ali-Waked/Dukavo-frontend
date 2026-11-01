@@ -199,6 +199,10 @@ function newsletterFormData(payload: Partial<NewsletterArticlePayload>): FormDat
     form.append('title', payload.title)
   }
 
+  if (payload.title_ar != null) {
+    form.append('title_ar', payload.title_ar)
+  }
+
   if (payload.slug) {
     form.append('slug', payload.slug)
   }
@@ -207,8 +211,16 @@ function newsletterFormData(payload: Partial<NewsletterArticlePayload>): FormDat
     form.append('body', payload.body)
   }
 
+  if (payload.body_ar != null) {
+    form.append('body_ar', payload.body_ar)
+  }
+
   if (payload.excerpt != null) {
     form.append('excerpt', payload.excerpt)
+  }
+
+  if (payload.excerpt_ar != null) {
+    form.append('excerpt_ar', payload.excerpt_ar)
   }
 
   if (payload.status) {
@@ -219,8 +231,16 @@ function newsletterFormData(payload: Partial<NewsletterArticlePayload>): FormDat
     form.append('meta_title', payload.meta_title)
   }
 
+  if (payload.meta_title_ar != null) {
+    form.append('meta_title_ar', payload.meta_title_ar)
+  }
+
   if (payload.meta_description != null) {
     form.append('meta_description', payload.meta_description)
+  }
+
+  if (payload.meta_description_ar != null) {
+    form.append('meta_description_ar', payload.meta_description_ar)
   }
 
   if (payload.cover_image) {
@@ -277,4 +297,22 @@ export function deleteNewsletterArticle(id: number): Promise<void> {
 
 export function checkNewsletterSlug(slug: string, ignore?: number): Promise<SlugCheckResult> {
   return api.get<SlugCheckResult>('/platform/newsletters/slug-availability', { slug, ignore })
+}
+
+export interface UploadedContentImage {
+  path: string
+  url: string
+}
+
+/**
+ * Upload an inline article image.
+ *
+ * The returned URL is embedded in the body; the server keeps the file on its own
+ * public disk. The editor never sends base64 or talks to a third-party host.
+ */
+export function uploadNewsletterContentImage(file: File): Promise<UploadedContentImage> {
+  const form = new FormData()
+  form.append('image', file)
+
+  return api.post<UploadedContentImage>('/platform/newsletters/content-images', form)
 }
