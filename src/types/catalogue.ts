@@ -108,6 +108,10 @@ export interface Store {
   email?: string | null
   phone?: string | null
   currency: string
+  currency_name?: string | null
+  currency_symbol?: string | null
+  currency_decimals?: number
+  currency_updated_at?: string | null
   timezone: string
   is_default: boolean
   products_count?: number

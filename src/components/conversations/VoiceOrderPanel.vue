@@ -28,6 +28,7 @@ import type {
   VoiceMessageStatus,
 } from '@/types/voice'
 import { formatCurrency, formatDateTime } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * The human review step for an inbound voice note.
@@ -231,7 +232,7 @@ function statusTone(status: VoiceMessageStatus): BadgeTone {
 }
 
 function lineCurrency(item: VoiceDraftItem): string {
-  return item.currency ?? extraction.value?.currency ?? 'USD'
+  return item.currency ?? extraction.value?.currency ?? activeCurrency()
 }
 
 function lineTotal(line: ReviewLine): number {

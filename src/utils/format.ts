@@ -1,4 +1,5 @@
 import { currentLocale as appLocale } from '@/i18n'
+import { activeCurrency, currencyMeta } from './currency'
 
 /**
  * Presentation-only formatting.
@@ -7,6 +8,11 @@ import { currentLocale as appLocale } from '@/i18n'
  * only thing that decides what a number *means*. These helpers only decide how
  * it reads in the current language and currency, which is why none of them
  * performs arithmetic beyond rounding for display.
+ *
+ * The default currency is the active workspace's base currency, set by the auth
+ * store on boot and on every workspace switch. Passing an explicit code is still
+ * required for historical rows (an old order keeps the currency it was placed
+ * in), but new catalogue amounts no longer fall back to a hardcoded USD.
  */
 
 function currentLocale(): string {
@@ -15,23 +21,25 @@ function currentLocale(): string {
 
 export function formatCurrency(
   value: number | null | undefined,
-  currency = 'USD',
-  options: { compact?: boolean; showSymbol?: boolean } = {},
+  currency = activeCurrency(),
+  options: { compact?: boolean; showSymbol?: boolean; decimals?: number } = {},
 ): string {
   const amount = value ?? 0
+  const meta = currencyMeta(currency)
+  const decimals = options.decimals ?? meta.decimals
 
   try {
     return new Intl.NumberFormat(currentLocale(), {
       style: options.showSymbol === false ? 'decimal' : 'currency',
-      currency,
+      currency: meta.code,
       notation: options.compact ? 'compact' : 'standard',
-      maximumFractionDigits: amount !== 0 && Math.abs(amount) < 100 ? 2 : 2,
+      maximumFractionDigits: decimals,
       minimumFractionDigits: 0,
     }).format(amount)
   } catch {
     // An unknown ISO currency code would throw; showing the raw figure beats
     // showing nothing.
-    return `${amount.toFixed(2)} ${currency}`
+    return `${amount.toFixed(decimals)} ${meta.code}`
   }
 }
 

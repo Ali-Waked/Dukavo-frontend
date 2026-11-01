@@ -53,6 +53,7 @@ import type { Product, ProductVariant } from '@/types/catalogue'
 import type { Order } from '@/types/commerce'
 import type { Conversation } from '@/types/inbox'
 import { formatCurrency, formatDateTime } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 import { statusTone } from '@/utils/status'
 
 const props = defineProps<{
@@ -134,7 +135,7 @@ function message(caught: unknown, fallback: string): string {
 }
 
 function money(value: number): string {
-  return formatCurrency(value, cart.value?.currency ?? 'USD')
+  return formatCurrency(value, cart.value?.currency ?? activeCurrency())
 }
 
 function note(caught: unknown, fallback: string): void {

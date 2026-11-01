@@ -7,6 +7,7 @@ import {
 } from '@/services/authService'
 import { setAccessToken, setTenantSlug } from '@/lib/axiosClient'
 import { resolveAuthDestination } from '@/lib/authDestination'
+import { setActiveCurrency } from '@/utils/currency'
 import type { Session } from '@/types/auth'
 
 /**
@@ -109,6 +110,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   function applySession(next: Session): void {
     session.value = next
+    // Formatting follows the active workspace's store currency, so every
+    // amount rendered after this point agrees with what the API will charge.
+    setActiveCurrency(next.active_tenant?.currency)
   }
 
   async function fetchMe(): Promise<Session> {
@@ -204,6 +208,7 @@ export const useAuthStore = defineStore('auth', () => {
     setTenantSlug(null)
     persistTenant(null)
     session.value = null
+    setActiveCurrency(null)
     forgetToken()
   }
 

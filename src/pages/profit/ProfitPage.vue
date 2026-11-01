@@ -34,6 +34,7 @@ import type {
   ProfitStore,
 } from '@/types/profit'
 import { formatCurrency, formatDate, formatNumber, formatPercent } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * Profit intelligence.
@@ -80,7 +81,7 @@ const today = isoToday(tenantTimezone)
 const defaultFrom = daysBefore(today, 29)
 
 const storeId = ref('')
-const currency = ref((auth.activeTenant?.currency ?? 'USD').toUpperCase())
+const currency = ref((auth.activeTenant?.currency ?? activeCurrency()).toUpperCase())
 const from = ref(defaultFrom)
 const until = ref(today)
 const loading = ref(true)
@@ -201,7 +202,7 @@ watch([storeId, currency, from, until], () => void load())
 
 function clearFilters(): void {
   storeId.value = ''
-  currency.value = (auth.activeTenant?.currency ?? 'USD').toUpperCase()
+  currency.value = (auth.activeTenant?.currency ?? activeCurrency()).toUpperCase()
   from.value = defaultFrom
   until.value = today
 }

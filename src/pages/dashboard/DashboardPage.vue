@@ -37,6 +37,7 @@ import type { Order } from '@/types/commerce'
 import type { AuditLog } from '@/types/admin'
 import { statusTone } from '@/utils/status'
 import { formatCurrency, formatNumber, formatRelative } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * The dashboard answers four questions in one screen: how much came in, what
@@ -67,7 +68,7 @@ const activity = ref<AuditLog[]>([])
 const stores = ref<Store[]>([])
 const storeScope = ref<string>('')
 
-const currency = computed(() => auth.activeTenant?.currency ?? overview.value?.context.currency ?? 'USD')
+const currency = computed(() => auth.activeTenant?.currency ?? overview.value?.context.currency ?? activeCurrency())
 const tenantName = computed(() => auth.activeTenant?.name ?? overview.value?.context.tenant ?? '')
 
 const greeting = computed(() => {

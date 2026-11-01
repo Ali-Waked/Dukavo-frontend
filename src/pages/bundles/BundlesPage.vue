@@ -46,6 +46,7 @@ import type {
 } from '@/types/bundles'
 import type { Product, Store } from '@/types/catalogue'
 import { formatCurrency } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 import { statusTone } from '@/utils/status'
 
 /**
@@ -275,7 +276,7 @@ function variantOptions(item: FormItem): Array<{ value: string; label: string }>
   const product = selectedProduct(item.product_id)
   return (product?.variants ?? []).map((variant) => ({
     value: String(variant.id),
-    label: `${variant.name} · ${formatCurrency(variant.price, product?.currency ?? 'USD')}`,
+    label: `${variant.name} · ${formatCurrency(variant.price, product?.currency ?? activeCurrency())}`,
   }))
 }
 

@@ -4,6 +4,7 @@ import type { RevenuePoint } from '@/types/dashboard'
 import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import { formatCompact, formatCurrency, formatDate, formatNumber } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * Revenue over time — a pure SVG area chart, no charting dependency.
@@ -30,7 +31,7 @@ const props = withDefaults(
     ordersWord?: string
   }>(),
   {
-    currency: 'USD',
+    currency: activeCurrency(),
     loading: false,
     height: 264,
     dashboardNoRevenue: '',

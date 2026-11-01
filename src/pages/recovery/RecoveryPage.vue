@@ -54,6 +54,7 @@ import type {
   RecoverySummary,
 } from '@/types/recovery'
 import { formatCurrency, formatDateTime, formatNumber } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * Lost-sale recovery workspace.
@@ -564,7 +565,7 @@ onMounted(() => {
             </td>
             <td class="px-4 py-3 text-end font-medium tabular-nums text-ink">
               <span v-if="opportunity.estimated_value !== null" dir="ltr" class="whitespace-nowrap [unicode-bidi:isolate]">
-                {{ formatCurrency(opportunity.estimated_value, opportunity.currency ?? 'USD') }}
+                {{ formatCurrency(opportunity.estimated_value, opportunity.currency ?? activeCurrency()) }}
               </span>
               <span v-else class="text-subtle">—</span>
             </td>
@@ -650,7 +651,7 @@ onMounted(() => {
             <p class="text-caption font-medium uppercase tracking-wide text-muted">{{ t('recovery.estimatedValue') }}</p>
             <p class="mt-1 font-semibold tabular-nums text-ink">
               <span v-if="selected.estimated_value !== null" dir="ltr" class="whitespace-nowrap [unicode-bidi:isolate]">
-                {{ formatCurrency(selected.estimated_value, selected.currency ?? 'USD') }}
+                {{ formatCurrency(selected.estimated_value, selected.currency ?? activeCurrency()) }}
               </span>
               <span v-else>—</span>
             </p>
@@ -659,7 +660,7 @@ onMounted(() => {
             <p class="text-caption font-medium uppercase tracking-wide text-muted">{{ t('recovery.recoveredValue') }}</p>
             <p class="mt-1 font-semibold tabular-nums text-ink">
               <span v-if="selected.recovered_value !== null" dir="ltr" class="whitespace-nowrap [unicode-bidi:isolate]">
-                {{ formatCurrency(selected.recovered_value, selected.recovered_currency ?? 'USD') }}
+                {{ formatCurrency(selected.recovered_value, selected.recovered_currency ?? activeCurrency()) }}
               </span>
               <span v-else>—</span>
             </p>

@@ -16,6 +16,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import BaseTable, { type TableColumn } from '@/components/ui/BaseTable.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import StoreCurrencyPanel from '@/components/stores/StoreCurrencyPanel.vue'
 import {
   createStore,
   deleteStore,
@@ -27,6 +28,7 @@ import {
 import type { Store as StoreRecord } from '@/types/catalogue'
 import type { StoreStatus } from '@/types/enums'
 import { statusTone } from '@/utils/status'
+import { currencyOptions } from '@/utils/currency'
 import { formatDateTime } from '@/utils/format'
 
 /**
@@ -66,6 +68,15 @@ const fieldErrors = ref<Record<string, string>>({})
 const saving = ref(false)
 
 const canManage = computed(() => auth.can('stores.manage'))
+
+const defaultStore = computed(() => rows.value.find((store) => store.is_default) ?? null)
+
+const currencyFormOptions = computed(() =>
+  currencyOptions().map((currency) => ({
+    value: currency.code,
+    label: `${currency.code} — ${currency.name}`,
+  })),
+)
 
 const hasFilters = computed(() => status.value !== '')
 
@@ -215,7 +226,9 @@ async function submitForm(): Promise<void> {
     status: formStatus.value as StoreStatus,
     email: formEmail.value.trim() || null,
     phone: formPhone.value.trim() || null,
-    currency: formCurrency.value.trim() || undefined,
+    // Currency is set at creation. An existing store changes it only through
+    // the dedicated conversion endpoint, so the edit form never sends it.
+    currency: editingId.value === null ? formCurrency.value.trim() || undefined : undefined,
     timezone: formTimezone.value.trim() || undefined,
     is_default: formIsDefault.value,
   }
@@ -247,6 +260,16 @@ async function makeDefault(store: StoreRecord): Promise<void> {
   } catch (caught) {
     toast.error(errorMessage(caught))
   }
+}
+
+/**
+ * After a conversion the row, the panel's history and the session's currency
+ * all changed. Reloading the session is what makes every other screen start
+ * formatting with the new code.
+ */
+async function onCurrencyConverted(): Promise<void> {
+  await load()
+  await auth.refreshSession()
 }
 
 async function confirmDelete(): Promise<void> {
@@ -286,6 +309,14 @@ onMounted(load)
     <BaseAlert v-if="error" tone="danger" dismissible @dismiss="error = null">
       {{ error }}
     </BaseAlert>
+
+    <!-- The default store anchors the workspace currency, so its conversion
+         lives here rather than inside the generic edit form. -->
+    <StoreCurrencyPanel
+      v-if="defaultStore"
+      :store="defaultStore"
+      @converted="onCurrencyConverted"
+    />
 
     <!-- Filters -->
     <div class="surface flex flex-wrap items-end gap-3 p-4">
@@ -465,10 +496,13 @@ onMounted(load)
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-          <BaseInput
+          <BaseSelect
             v-model="formCurrency"
             :label="t('common.currency')"
             :error="fieldError('currency')"
+            :options="currencyFormOptions"
+            :disabled="editingId !== null"
+            :hint="editingId !== null ? t('currency.managedInPanel') : undefined"
           />
 
           <BaseInput

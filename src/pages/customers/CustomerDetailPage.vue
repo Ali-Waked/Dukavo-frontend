@@ -41,6 +41,7 @@ import {
   formatNumber,
   formatRelative,
 } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * One customer: who they are, what they have spent, and their latest orders.
@@ -113,7 +114,7 @@ const canUpdate = computed(() => auth.can('customers.update'))
 const canDelete = computed(() => auth.can('customers.delete'))
 const canUseAi = computed(() => auth.can('ai.use'))
 const canViewOrders = computed(() => auth.can('orders.view'))
-const currency = computed(() => auth.activeTenant?.currency ?? 'USD')
+const currency = computed(() => auth.activeTenant?.currency ?? activeCurrency())
 
 const addresses = computed(() => customer.value?.addresses ?? [])
 

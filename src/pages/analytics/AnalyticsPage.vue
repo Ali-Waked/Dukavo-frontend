@@ -18,6 +18,7 @@ import { fetchStores } from '@/services/storeService'
 import type { AnalyticsKpi, AnalyticsOverview } from '@/types/analytics'
 import type { Store } from '@/types/catalogue'
 import { formatCurrency, formatNumber, formatPercent } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * Executive analytics.
@@ -41,7 +42,7 @@ const fromDate = ref('')
 const untilDate = ref('')
 
 const currency = computed(
-  () => overview.value?.currency ?? auth.activeTenant?.currency ?? 'USD',
+  () => overview.value?.currency ?? auth.activeTenant?.currency ?? activeCurrency(),
 )
 
 const rangeSummary = computed(() => {

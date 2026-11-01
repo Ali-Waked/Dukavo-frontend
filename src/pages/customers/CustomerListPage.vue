@@ -30,6 +30,7 @@ import type { Paginated } from '@/types/api'
 import type { CustomerStatus } from '@/types/enums'
 import { statusTone } from '@/utils/status'
 import { formatCurrency, formatNumber, formatRelative } from '@/utils/format'
+import { activeCurrency } from '@/utils/currency'
 
 /**
  * Customer list.
@@ -76,7 +77,7 @@ const saving = ref(false)
 const canCreate = computed(() => auth.can('customers.create'))
 const canUpdate = computed(() => auth.can('customers.update'))
 const canDelete = computed(() => auth.can('customers.delete'))
-const currency = computed(() => auth.activeTenant?.currency ?? 'USD')
+const currency = computed(() => auth.activeTenant?.currency ?? activeCurrency())
 
 const hasFilters = computed(() => query.value !== '' || status.value !== '')
 
