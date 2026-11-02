@@ -57,6 +57,18 @@ export const PERMISSIONS = {
     view: 'stores.view',
     manage: 'stores.manage',
   },
+  storefront: {
+    view: 'storefront.view',
+    manage: 'storefront.manage',
+  },
+  shipping: {
+    view: 'shipping.view',
+    manage: 'shipping.manage',
+  },
+  payments: {
+    view: 'payments.view',
+    manage: 'payments.manage',
+  },
   users: {
     view: 'users.view',
     manage: 'users.manage',
@@ -112,6 +124,9 @@ export const PERMISSION_MODULES: Array<{
   { module: 'recovery', labelKey: 'permission.module.recovery', permissions: [PERMISSIONS.recovery.view, PERMISSIONS.recovery.manage] },
   { module: 'whatsapp', labelKey: 'permission.module.whatsapp', permissions: [PERMISSIONS.whatsapp.view, PERMISSIONS.whatsapp.manage] },
   { module: 'stores', labelKey: 'permission.module.stores', permissions: [PERMISSIONS.stores.view, PERMISSIONS.stores.manage] },
+  { module: 'storefront', labelKey: 'permission.module.storefront', permissions: [PERMISSIONS.storefront.view, PERMISSIONS.storefront.manage] },
+  { module: 'shipping', labelKey: 'permission.module.shipping', permissions: [PERMISSIONS.shipping.view, PERMISSIONS.shipping.manage] },
+  { module: 'payments', labelKey: 'permission.module.payments', permissions: [PERMISSIONS.payments.view, PERMISSIONS.payments.manage] },
   { module: 'users', labelKey: 'permission.module.users', permissions: [PERMISSIONS.users.view, PERMISSIONS.users.manage] },
   { module: 'roles', labelKey: 'permission.module.roles', permissions: [PERMISSIONS.roles.view, PERMISSIONS.roles.manage] },
   { module: 'audit', labelKey: 'permission.module.audit', permissions: [PERMISSIONS.audit.view] },

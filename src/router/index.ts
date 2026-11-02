@@ -102,6 +102,54 @@ const router = createRouter({
       ],
     },
     {
+      path: '/shop/:tenantSlug/:storeSlug',
+      component: () => import('@/layouts/StorefrontLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'storefront.home',
+          component: () => import('@/pages/shop/StorefrontHomePage.vue'),
+          meta: { title: 'Shop' },
+        },
+        {
+          path: 'products',
+          name: 'storefront.products',
+          component: () => import('@/pages/shop/StorefrontCataloguePage.vue'),
+          meta: { title: 'Shop' },
+        },
+        {
+          path: 'products/:productSlug',
+          name: 'storefront.product',
+          component: () => import('@/pages/shop/StorefrontProductPage.vue'),
+          meta: { title: 'Shop' },
+        },
+        {
+          path: 'cart',
+          name: 'storefront.cart',
+          component: () => import('@/pages/shop/StorefrontCartPage.vue'),
+          meta: { title: 'Cart', hideFooterNewsletter: true },
+        },
+        {
+          path: 'checkout',
+          name: 'storefront.checkout',
+          component: () => import('@/pages/shop/StorefrontCheckoutPage.vue'),
+          meta: { title: 'Checkout', hideFooterNewsletter: true },
+        },
+        {
+          path: 'orders/:token',
+          name: 'storefront.order',
+          component: () => import('@/pages/shop/StorefrontOrderPage.vue'),
+          meta: { title: 'Order', hideFooterNewsletter: true },
+        },
+        {
+          path: 'track',
+          name: 'storefront.track',
+          component: () => import('@/pages/shop/StorefrontTrackPage.vue'),
+          meta: { title: 'Track order', hideFooterNewsletter: true },
+        },
+      ],
+    },
+    {
       path: '/',
       component: AuthLayout,
       meta: { guest: true },
@@ -263,6 +311,24 @@ const router = createRouter({
           name: 'stores.index',
           component: () => import('@/pages/stores/StoresPage.vue'),
           meta: { permission: 'stores.view', title: 'Stores' },
+        },
+        {
+          path: 'storefront',
+          name: 'storefrontAdmin.index',
+          component: () => import('@/pages/storefront/StorefrontSettingsPage.vue'),
+          meta: { permission: 'storefront.view', title: 'Storefront' },
+        },
+        {
+          path: 'shipping',
+          name: 'shippingAdmin.index',
+          component: () => import('@/pages/shipping/ShippingZonesPage.vue'),
+          meta: { permission: 'shipping.view', title: 'Shipping' },
+        },
+        {
+          path: 'payments',
+          name: 'paymentAdmin.index',
+          component: () => import('@/pages/payments/PaymentSettingsPage.vue'),
+          meta: { permission: 'payments.view', title: 'Payments' },
         },
         {
           path: 'users',
