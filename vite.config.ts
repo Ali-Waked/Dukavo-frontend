@@ -22,6 +22,10 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: backendUrl,
           changeOrigin: true,
+          // TEMP: production debugging
+          ...(backendUrl.startsWith('https:')
+            ? { secure: true, cookieDomainRewrite: '' }
+            : {}),
         },
         // Sanctum's CSRF cookie endpoint lives outside /api. Without it the
         // browser holds no XSRF token and every stateful request is rejected
@@ -29,6 +33,10 @@ export default defineConfig(({ mode }) => {
         '/sanctum': {
           target: backendUrl,
           changeOrigin: true,
+          // TEMP: production debugging
+          ...(backendUrl.startsWith('https:')
+            ? { secure: true, cookieDomainRewrite: '' }
+            : {}),
         },
       },
     },
