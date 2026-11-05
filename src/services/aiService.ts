@@ -36,6 +36,11 @@ export function fetchAiAvailability(): Promise<AiAvailability[]> {
   return api.get<AiAvailability[]>('/tenant/ai/availability')
 }
 
+/** The same catalogue, resolved against a platform operator's permissions. */
+export function fetchPlatformAiAvailability(): Promise<AiAvailability[]> {
+  return api.get<AiAvailability[]>('/platform/ai/availability')
+}
+
 /* ------------------------------------------------------------------ reply */
 
 /**

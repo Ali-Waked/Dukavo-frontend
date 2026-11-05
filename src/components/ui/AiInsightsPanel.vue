@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { AlertTriangle, Info, RefreshCw, Sparkles } from '@/components/icons'
 import { useI18n } from '@/i18n'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
-import { fetchPlatformInsights, fetchTenantInsights } from '@/services/aiService'
+import {
+  fetchAiAvailability,
+  fetchPlatformAiAvailability,
+  fetchPlatformInsights,
+  fetchTenantInsights,
+} from '@/services/aiService'
 import type { PlatformDashboardRangeKey } from '@/services/platformService'
 import type { AiInsights } from '@/types/ai'
 import { aiErrorMessage, severityTone } from '@/utils/ai'
@@ -37,6 +42,32 @@ const insights = ref<AiInsights | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
+/**
+ * Whether the server says this briefing can run now.
+ *
+ * `null` means the check is still in flight, and `false` hides the panel
+ * entirely: an installation with no AI provider should not offer a button that
+ * can only answer 503. A failed check is treated as available so a transient
+ * availability error never hides a feature that may still work — the request
+ * itself will surface the real reason.
+ */
+const available = ref<boolean | null>(null)
+
+async function checkAvailability(): Promise<void> {
+  try {
+    const useCases =
+      props.scope === 'platform'
+        ? await fetchPlatformAiAvailability()
+        : await fetchAiAvailability()
+
+    available.value = useCases.some((useCase) => useCase.key === 'insights' && useCase.enabled)
+  } catch {
+    available.value = true
+  }
+}
+
+onMounted(checkAvailability)
+
 async function generate(): Promise<void> {
   loading.value = true
   error.value = null
@@ -65,7 +96,7 @@ watch(
 </script>
 
 <template>
-  <section class="surface p-5" :aria-label="t('ai.insights.title')">
+  <section v-if="available" class="surface p-5" :aria-label="t('ai.insights.title')">
     <div class="flex items-start justify-between gap-3">
       <div class="flex items-center gap-2">
         <span class="grid size-8 place-items-center rounded-lg bg-brand-soft text-brand-ink">
