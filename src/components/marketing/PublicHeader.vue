@@ -4,13 +4,22 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   ArrowRight,
   ChevronDown,
+  House,
+  Info,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
+  Mail,
   Menu,
   Moon,
+  Newspaper,
   SlidersHorizontal,
+  Sparkles,
   Sun,
+  Tag,
+  Workflow,
   X,
+  type LucideIcon,
 } from '@/components/icons'
 import AppLogo from '@/components/ui/AppLogo.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -24,21 +33,22 @@ import { useTheme } from '@/composables/useTheme'
 import { useDashboardRoute } from '@/composables/useDashboardRoute'
 import { useNotificationStore } from '@/stores/notificationStore'
 
-interface NavItem {
+interface NavLink {
   to: string
-  key: MessageKey
+  label: MessageKey
+  icon: LucideIcon
   secondary?: boolean
 }
 
-const NAV: NavItem[] = [
-  { to: '/', key: 'marketing.nav.home', secondary: true },
-  { to: '/features', key: 'marketing.nav.features' },
-  { to: '/how-it-works', key: 'marketing.nav.howItWorks', secondary: true },
-  { to: '/pricing', key: 'marketing.nav.pricing' },
-  { to: '/blog', key: 'marketing.nav.blog' },
-  { to: '/about', key: 'marketing.nav.about' },
-  { to: '/help', key: 'marketing.nav.help' },
-  { to: '/contact', key: 'marketing.nav.contact' },
+const links: NavLink[] = [
+  { to: '/', label: 'marketing.nav.home', icon: House, secondary: true },
+  { to: '/features', label: 'marketing.nav.features', icon: Sparkles },
+  { to: '/how-it-works', label: 'marketing.nav.howItWorks', icon: Workflow, secondary: true },
+  { to: '/pricing', label: 'marketing.nav.pricing', icon: Tag },
+  { to: '/blog', label: 'marketing.nav.blog', icon: Newspaper },
+  { to: '/about', label: 'marketing.nav.about', icon: Info },
+  { to: '/help', label: 'marketing.nav.help', icon: LifeBuoy },
+  { to: '/contact', label: 'marketing.nav.contact', icon: Mail },
 ]
 
 const ANNOUNCEMENT_KEY = 'dukavo.announcement.dismissed'
@@ -157,7 +167,7 @@ onBeforeUnmount(() => {
 
         <nav class="hidden items-center gap-1 lg:flex" :aria-label="t('marketing.nav.primary')">
           <RouterLink
-            v-for="item in NAV"
+            v-for="item in links"
             :key="item.to"
             :to="item.to"
             class="rounded-md px-2.5 py-2 text-sm font-medium transition-colors duration-150"
@@ -169,7 +179,7 @@ onBeforeUnmount(() => {
             ]"
             :aria-current="isActive(item.to) ? 'page' : undefined"
           >
-            {{ t(item.key) }}
+            {{ t(item.label) }}
           </RouterLink>
         </nav>
 
@@ -295,12 +305,12 @@ onBeforeUnmount(() => {
           id="public-mobile-menu"
           class="max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain border-t border-line bg-surface px-4 pb-5 pt-3 shadow-md lg:hidden"
         >
-          <nav class="mx-auto grid max-w-7xl gap-1" :aria-label="t('marketing.nav.primary')">
+          <nav class="mx-auto flex max-w-7xl flex-col gap-1" :aria-label="t('marketing.nav.primary')">
             <RouterLink
-              v-for="item in NAV"
+              v-for="item in links"
               :key="`mobile-${item.to}`"
               :to="item.to"
-              class="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition"
+              class="flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm font-medium transition"
               :class="
                 isActive(item.to)
                   ? 'bg-brand-soft text-brand-ink'
@@ -308,26 +318,22 @@ onBeforeUnmount(() => {
               "
               :aria-current="isActive(item.to) ? 'page' : undefined"
             >
-              {{ t(item.key) }}
-              <ArrowRight class="size-4 rtl:-scale-x-100" aria-hidden="true" />
+              <component :is="item.icon" class="size-5 shrink-0" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate text-start">{{ t(item.label) }}</span>
+              <ArrowRight class="size-4 shrink-0 rtl:rotate-180" aria-hidden="true" />
             </RouterLink>
           </nav>
 
-          <div class="mx-auto mt-3 flex max-w-7xl flex-col gap-2 border-t border-line pt-4">
-            <BaseButton v-if="!isAuthenticated" to="/waitlist" block>
-              {{ t('marketing.nav.waitlistCta') }}
+          <div
+            v-if="isAuthenticated"
+            class="mx-auto mt-3 flex max-w-7xl flex-col gap-2 border-t border-line pt-4"
+          >
+            <BaseButton :to="dashboardHref" variant="secondary" block>
+              {{ t('nav.dashboard') }}
             </BaseButton>
-            <BaseButton v-if="!isAuthenticated" to="/login" variant="secondary" block>
-              {{ t('marketing.nav.login') }}
+            <BaseButton variant="ghost" block @click="handleLogout">
+              {{ t('common.signOut') }}
             </BaseButton>
-            <template v-else>
-              <BaseButton :to="dashboardHref" variant="secondary" block>
-                {{ t('nav.dashboard') }}
-              </BaseButton>
-              <BaseButton variant="ghost" block @click="handleLogout">
-                {{ t('common.signOut') }}
-              </BaseButton>
-            </template>
           </div>
 
           <div class="mx-auto mt-4 max-w-7xl border-t border-line pt-4">
