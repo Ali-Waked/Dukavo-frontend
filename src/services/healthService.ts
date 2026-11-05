@@ -1,4 +1,4 @@
-import { httpClient } from '@/lib/axiosClient'
+import { apiOrigin, httpClient } from '@/lib/axiosClient'
 
 /**
  * Backend liveness probe.
@@ -20,7 +20,7 @@ export interface BackendHealth {
 
 export async function fetchBackendHealth(): Promise<BackendHealth> {
   const { data } = await httpClient.get<BackendHealth>('/api/health', {
-    baseURL: '/',
+    baseURL: apiOrigin || '/',
     withCredentials: true,
     timeout: 8000,
   })

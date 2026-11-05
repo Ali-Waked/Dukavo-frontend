@@ -29,6 +29,17 @@ import type { ApiFailure, ApiSuccess, Paginated } from '@/types/api'
  */
 
 /* -------------------------------------------------------------------------
+ * API origin
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Absolute origin of the Laravel backend in production, e.g.
+ * `https://dukavo-backend.ethiodeploy.app`. Left empty in development so
+ * requests stay same-origin and go through the Vite proxy.
+ */
+export const apiOrigin = import.meta.env.VITE_API_URL ?? ''
+
+/* -------------------------------------------------------------------------
  * Credentials
  * ---------------------------------------------------------------------- */
 
@@ -85,17 +96,11 @@ export function onUnauthorized(handler: UnauthorizedHandler): () => void {
  * CSRF
  * ---------------------------------------------------------------------- */
 
-/** URL of Sanctum's cookie endpoint, resolved against the API base. */
+/** URL of Sanctum's cookie endpoint, resolved against the API origin. */
 function csrfCookieUrl(): string {
-  const base = import.meta.env.VITE_API_BASE_URL ?? '/api'
-
-  // A relative base means the API is served from this origin (dev proxy or
-  // same-host production), so the Sanctum route sits next to it.
-  if (!/^https?:\/\//i.test(base)) {
-    return '/sanctum/csrf-cookie'
-  }
-
-  return new URL('/sanctum/csrf-cookie', base).toString()
+  // An empty origin keeps this a relative path in development, so it follows
+  // the same-origin Vite proxy as the rest of the API calls.
+  return `${apiOrigin}/sanctum/csrf-cookie`
 }
 
 let csrfPrime: Promise<void> | null = null
@@ -214,7 +219,7 @@ function normalise(error: unknown): ApiError {
  * ---------------------------------------------------------------------- */
 
 export const httpClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
+  baseURL: `${apiOrigin}/api/v1`,
   withCredentials: true,
   withXSRFToken: true,
   headers: {
